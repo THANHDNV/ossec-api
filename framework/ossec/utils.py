@@ -42,8 +42,6 @@ except ImportError:
 def previous_month(n=1):
     """
     Returns the first date of the previous n month.
-    :param n: Number of months.
-    :return: First date of the previous n month.
     """
 
     date = datetime.today().replace(day=1)  # First day of current month

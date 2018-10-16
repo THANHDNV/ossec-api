@@ -1,0 +1,9 @@
+----------DIFFERENCES----------
+common.py: UNIX use pwd and grp
+utils.py: UNIX use chown
+ossec_queue.py: UNIX use socket.AF_UNIX
+ossec_socket.py: UNIX use socket.AF_UNIX
+odb.py: UNIX use socket.AF_UNIX
+
+----------WARNING----------
+Re-check the use of database.py

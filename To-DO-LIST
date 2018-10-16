@@ -11,4 +11,6 @@ Check /var/ossec/etc/ossec.conf
 Recheck load_ossec_xml in utils.py
     Recheck _ossecconf2json in configuration.py
 Check /var/ossec/var/db/global.db (if exist)
-    
+    Not
+        Modify get_agent() in agent.py
+        Modify or Delete database.py

@@ -439,7 +439,7 @@ def plain_dict_to_nested_dict(data, nested=None, non_nested=None, force_fields=[
     return nested_dict
 
 
-def load_wazuh_xml(xml_path):
+def load_ossec_xml(xml_path):
     with open(xml_path) as f:
         data = f.read()
 

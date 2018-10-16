@@ -1,9 +1,27 @@
+----------CHANGES----------
+utils.py: change all wazuh to ossec
+
+
+
+----------Wazuh VS OSSEC----------
+Wazuh has db (/var/ossec/var/db/global.db)
+    Modify or disable database.py
+
 ----------DIFFERENCES----------
 common.py: UNIX use pwd and grp
 utils.py: UNIX use chown
 ossec_queue.py: UNIX use socket.AF_UNIX
 ossec_socket.py: UNIX use socket.AF_UNIX
 odb.py: UNIX use socket.AF_UNIX
+manager.py: glob can run on Windows, but the path it use is on UNIX only
+agent.py: UNIX use chown; UNIX use fcntl
+
+
+
+----------UNFINISH----------
+agent.py
+
+
 
 ----------WARNING----------
 Re-check the use of database.py

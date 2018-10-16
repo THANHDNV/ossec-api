@@ -1,0 +1,14 @@
+#16/10
+Check /var/ossec/var/run/ on ossec manager
+Check /var/ossec/logs/ossec.log on ossec manager
+    check __get_ossec_log_fields function in manager.py
+Check search_array and sort_array in utils.py
+Check /etc/ossec-init.conf
+    Check get_ossec_init in __init__.py
+Check /var/ossec/stats (if exist)
+    Recheck totals, hourly, weekly in stats.py
+Check /var/ossec/etc/ossec.conf
+Recheck load_ossec_xml in utils.py
+    Recheck _ossecconf2json in configuration.py
+Check /var/ossec/var/db/global.db (if exist)
+    

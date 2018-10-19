@@ -7,6 +7,55 @@ utils.py: change all wazuh to ossec
 Wazuh has db (/var/ossec/var/db/global.db)
     Modify or disable database.py
 
+----------Modifying files----------
+Connection
+    database.py
+
+    __init__.py
+        __init__
+            get_ossec_init
+
+    agent.py
+        _load_info_from_DB
+        _add_manual
+        get_agent_attr
+        get_agents_overview
+        get_agents_summary
+        get_os_summary
+        get_agent_by_name
+        check_if_delete_agent
+        get_all_groups_sql
+        get_all_groups
+            get_hash
+        group_exists_sql
+        get_agent_group
+        get_outdated_agents
+
+    distinct.py
+        _db_request
+            _get_total_items
+            _get_group_distinct
+
+    rootcheck.py
+        clear
+        print_db
+        get_pci
+        get_cis
+        last_scan
+
+    syscheck.py
+        clear
+        last_scan
+        files
+
+WazuhDatabase
+    wdb.py
+
+    agent.py
+        _load_info_from_agent_db
+            syscollector.py
+                get_item_agent
+
 ----------DIFFERENCES----------
 common.py: UNIX use pwd and grp
 utils.py: UNIX use chown

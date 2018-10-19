@@ -11,6 +11,7 @@ CHECK       '/manager/logs': manager.ossec_log,
 
 
 # Agents
+# PENDING
 PENDING     '/agents/:agent_id': Agent.get_agent,
 '/agents/name/:agent_name': Agent.get_agent_by_name,
 '/agents/:agent_id/key': Agent.get_agent_key,
@@ -40,6 +41,7 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 
 
 # Groups
+# PENDING
 '/agents/groups': Agent.get_all_groups,
 '/agents/no_group': Agent.get_agents_without_group,
 '/agents/groups/:group_id': Agent.get_agent_group,
@@ -61,6 +63,7 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 
 
 # Cluster
+# NOT IMPLEMENT
 '/cluster/status': cluster.get_status_json,
 '/cluster/config': cluster.read_config,
 '/cluster/node': cluster.get_node,

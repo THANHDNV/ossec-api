@@ -74,3 +74,15 @@ agent.py
 
 ----------WARNING----------
 Re-check the use of database.py
+
+
+
+
+sqlite -> mongodb
+1. change query statement in framework
+2. modify connection in database.py in framework
+	
+3. sync information from ossec log and info files to the database
+	solution: use log-timestamp of nodejs. require to create a new module
+
+Linux localhost.localdomain 3.10.0-327.el7.x86_64 #1 SMP Thu Nov 19 22:10:57 UTC 2015 x86_64 - OSSEC HIDS v2.9.0

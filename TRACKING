@@ -41,7 +41,7 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 
 
 # Groups
-# PENDING
+# NOT IMPLEMENT
 '/agents/groups': Agent.get_all_groups,
 '/agents/no_group': Agent.get_agents_without_group,
 '/agents/groups/:group_id': Agent.get_agent_group,
@@ -85,7 +85,7 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 
 # Rules
 '/rules': Rule.get_rules,
-'/rules/groups': Rule.get_groups,
+NOT IMPLEMENT   '/rules/groups': Rule.get_groups,
 '/rules/pci': Rule.get_pci,
 '/rules/gdpr': Rule.get_gdpr,
 '/rules/files': Rule.get_rules_files,

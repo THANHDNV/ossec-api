@@ -1,0 +1,83 @@
+global.db
+	wdb.c
+		wdb_open_global
+			wdb_agent.c
+				insert new agent: wdb_insert_agent
+				update agent name: wdb_update_agent_name
+				update agent version(os name, version...): wdb_update_agent_version
+				update agent last keep alive time: wdb_update_agent_keepalive
+				delete an agent: wdb_remove_agent
+				get an agent name: wdb_agent_name
+				get all agent: wdb_get_all_agents
+				find an agent by name: wdb_find_agent
+				wdb_get_agent_offset
+				wdb_set_agent_offset
+				wdb_get_agent_status
+				wdb_set_agent_status
+				wdb_update_agent_group
+			wdb_insert_info
+
+	wm_vuln_detector.c
+		wm_vunlnerability_detector_set_agents_info
+			wm_vulnerability_detector_main
+				WM_VULNDETECTOR_CONTEXT
+					wmodules-vuln-detector.c
+					wmodules-config.c
+
+Where is agent info stored?
+	global.db
+
+What info does it store?
+	agent
+		id
+		name
+		ip
+		key
+		os_name
+		os_version
+		os_major
+		os_minor
+		os_codename
+		os_build
+		os_platform
+		os_uname
+		os_arch
+		version
+		config_sum
+		merged_sum
+		manager_host
+		node_name
+		date_add
+		last_keepalive
+		status
+		fim_offset
+		reg_offset
+		group (N/U)
+	info
+		key
+		value
+
+Where is the info get from?
+	agent
+		/etc/client.keys
+			id: $1
+			name: $2
+			ip: $3
+			key (hashed): $4
+			date added?????
+			group (exclusive to wazuh)
+		/queue/agent-info/{name}-{ip}
+			os_name
+			os_version
+			os_major
+			os_minor
+			os_codename
+			os_platform
+			os_build
+			os -> os_uname
+			os_arch
+			version
+			config_sum
+			merged_sum
+			manager_host
+			node_name

@@ -1,8 +1,0 @@
-#MANAGER
-wazuh
-manager
-configuration
-stats
-
-#AGENT
-agent

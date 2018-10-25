@@ -94,5 +94,6 @@ sqlite -> mongodb
 OSSEC
 Linux localhost.localdomain 3.10.0-327.el7.x86_64 #1 SMP Thu Nov 19 22:10:57 UTC 2015 x86_64 - OSSEC HIDS v2.9.0
 {sysname} {nodename} {release} {version} {machine} - {__ossec_name} {__version}
+
 Wazuh
 {sysname} |{nodename} |{release} |{version} |{machine} [{os_name}|{os_platform}: {os_version}] - {__ossec_name} {__ossec_version}

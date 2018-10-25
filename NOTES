@@ -26,11 +26,11 @@ Connection
             get_os_summary
             get_agent_by_name
             check_if_delete_agent
-            #NOT IMPLEMENT get_all_groups_sql
-            #NOT IMPLEMENT get_all_groups
+            get_all_groups_sql
+            get_all_groups
                 get_hash
-            #NOT IMPLEMENT group_exists_sql
-            #NOT IMPLEMENT get_agent_group
+            group_exists_sql
+            get_agent_group
             get_outdated_agents
 
     distinct.py
@@ -44,7 +44,7 @@ Connection
             clear
             print_db
             get_pci
-            #NOT IMPLEMENT get_cis
+            get_cis
             last_scan
 
     syscheck.py
@@ -94,6 +94,6 @@ sqlite -> mongodb
 OSSEC
 Linux localhost.localdomain 3.10.0-327.el7.x86_64 #1 SMP Thu Nov 19 22:10:57 UTC 2015 x86_64 - OSSEC HIDS v2.9.0
 {sysname} {nodename} {release} {version} {machine} - {__ossec_name} {__version}
-
 Wazuh
-{sysname} |{nodename} |{release} |{version} |{machine} [{os_name}|{os_platform}: {os_version}] - {__ossec_name} {__ossec_version}
+{sysname} |{nodename} |{release} |{version} |{machine} [{os_name}|{os_platform}: {os_version} ({os_codename})] - {__ossec_name} {__ossec_version}
+

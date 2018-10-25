@@ -48,11 +48,11 @@ What info does it store?
 		manager_host
 		node_name
 		date_add
-		last_keepalive 
-		status (empty, pending, updated)
-		fim_offset (N/U)
-		reg_offset (N/U) 
-		group (OSSEC unavailable)
+		last_keepalive
+		status
+		fim_offset
+		reg_offset
+		group (N/U)
 	info
 		key
 		value
@@ -64,8 +64,8 @@ Where is the info get from?
 			name: $2
 			ip: $3
 			key (hashed): $4
-			date added (Date when add to the db)
-			group (exclusive to wazuh) (OSSEC unavailable)
+			date added?????
+			group (exclusive to wazuh)
 		/queue/agent-info/{name}-{ip}
 			os_name (OSSEC unavailable)
 			os_version (OSSEC unavailable)
@@ -73,11 +73,11 @@ Where is the info get from?
 			os_minor (OSSEC unavailable)
 			os_codename (OSSEC unavailable)
 			os_platform (OSSEC unavailable)
-			os_build 
-			os -> os_uname
-			os_arch (OSSEC unavailable - can get from os)
-			version (get from os)
-			config_sum (None - not using /var/ossec/etc/shared/agent.conf in manager)
-			merged_sum (None - don't have /var/ossec/etc/shared/merged.mg in manager)
-			manager_host (OSSEC unavailable)
-			node_name (OSSEC unavailable)
+			os_build (OSSEC unavailable)
+			os -> os_uname 
+			os_arch (OSSEC unavailable, but can be get from os field)
+			version (OSSEC version)
+			config_sum (from os)
+			merged_sum (from os)
+			manager_host
+			node_name (from os)

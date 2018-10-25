@@ -62,17 +62,6 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 
 
 
-# Cluster
-# NOT IMPLEMENT
-'/cluster/status': cluster.get_status_json,
-'/cluster/config': cluster.read_config,
-'/cluster/node': cluster.get_node,
-'/cluster/nodes': cluster_control.get_nodes_api,
-'/cluster/nodes/:node_name': cluster_control.get_nodes_api,
-'/cluster/healthcheck': cluster_control.get_healthcheck,
-
-
-
 # Rootcheck
 '/rootcheck/:agent_id': rootcheck.print_db,
 '/rootcheck/:agent_id/pci': rootcheck.get_pci,
@@ -80,6 +69,11 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 '/rootcheck/:agent_id/last_scan': rootcheck.last_scan,
 'PUT/rootcheck': rootcheck.run,
 'DELETE/rootcheck': rootcheck.clear,
+
+
+
+# Active response
+'/PUT/active-response/:agent_id': active_response.run_command,
 
 
 
@@ -100,7 +94,19 @@ NOT IMPLEMENT   '/rules/groups': Rule.get_groups,
 
 
 
+# Cluster
+# NOT IMPLEMENT
+'/cluster/status': cluster.get_status_json,
+'/cluster/config': cluster.read_config,
+'/cluster/node': cluster.get_node,
+'/cluster/nodes': cluster_control.get_nodes_api,
+'/cluster/nodes/:node_name': cluster_control.get_nodes_api,
+'/cluster/healthcheck': cluster_control.get_healthcheck,
+
+
+
 # Syscollector
+# NOT IMPLEMENT
 '/syscollector/:agent_id/os': syscollector.get_os_agent,
 '/syscollector/:agent_id/hardware': syscollector.get_hardware_agent,
 '/syscollector/:agent_id/packages': syscollector.get_packages_agent,
@@ -112,17 +118,14 @@ NOT IMPLEMENT   '/rules/groups': Rule.get_groups,
 
 
 
-# Active response
-'/PUT/active-response/:agent_id': active_response.run_command,
-
-
-
 # CIS-CAT
+#NOT IMPLEMENT
 '/ciscat/:agent_id/results': ciscat.get_results_agent,
 
 
 
 # Experimental
+#NOT IMPLEMENT
 '/experimental/syscollector/os': syscollector.get_os,
 '/experimental/syscollector/hardware': syscollector.get_hardware,
 '/experimental/syscollector/packages': syscollector.get_packages,

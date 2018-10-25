@@ -67,9 +67,9 @@ Where is the info get from?
 			date added?????
 			group (exclusive to wazuh)
 		/queue/agent-info/{name}-{ip}
-			os_name
-			os_version
-			os_major
+			os_name (OSSEC unavailable)
+			os_version (OSSEC unavailable)
+			os_major (OSSEC unavailable)
 			os_minor
 			os_codename
 			os_platform
@@ -77,7 +77,7 @@ Where is the info get from?
 			os -> os_uname
 			os_arch
 			version
-			config_sum
+			config_sum 
 			merged_sum
 			manager_host
 			node_name

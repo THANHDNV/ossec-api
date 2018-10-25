@@ -250,46 +250,46 @@ class Agent:
             raise OSSECAPIException(1701, self.id)
 
 
-    def _load_info_from_agent_db(self, table, select, filters={}, count=False, offset=0, limit=common.database_limit, sort={}, search={}):
-        """
-        Make a request to agent's database using Wazuh DB
-        :param table: DB table to retrieve data from
-        :param select: DB fields to retrieve
-        :param filters: filter conditions
-        :param sort: Dictionary of form {'fields':[], 'order':'asc'}/{'fields':[], 'order':'desc'}
-        :param search: Dictionary of form {'value': '', 'negation':false, 'fields': []}
-        """
-        wdb_conn = OssecDBConnection()
+    # def _load_info_from_agent_db(self, table, select, filters={}, count=False, offset=0, limit=common.database_limit, sort={}, search={}):
+    #     """
+    #     Make a request to agent's database using Wazuh DB
+    #     :param table: DB table to retrieve data from
+    #     :param select: DB fields to retrieve
+    #     :param filters: filter conditions
+    #     :param sort: Dictionary of form {'fields':[], 'order':'asc'}/{'fields':[], 'order':'desc'}
+    #     :param search: Dictionary of form {'value': '', 'negation':false, 'fields': []}
+    #     """
+    #     wdb_conn = OssecDBConnection()
 
-        query = "agent {} sql select {} from {}".format(self.id, ','.join(select), table)
+    #     query = "agent {} sql select {} from {}".format(self.id, ','.join(select), table)
 
-        if filters:
-            for key, value in filters.items():
-                query += " and {} = '{}'".format(key, value)
+    #     if filters:
+    #         for key, value in filters.items():
+    #             query += " and {} = '{}'".format(key, value)
 
-        if search:
-            query += " and not" if bool(search['negation']) else " and"
-            query += '(' + " or ".join("{} like '%{}%'".format(x, search['value']) for x in search['fields']) + ')'
+    #     if search:
+    #         query += " and not" if bool(search['negation']) else " and"
+    #         query += '(' + " or ".join("{} like '%{}%'".format(x, search['value']) for x in search['fields']) + ')'
 
-        if "from {} and".format(table) in query:
-            query = query.replace("from {} and".format(table), "from {} where".format(table))
+    #     if "from {} and".format(table) in query:
+    #         query = query.replace("from {} and".format(table), "from {} where".format(table))
 
-        if limit:
-            if limit > common.maximum_database_limit:
-                raise OSSECAPIException(1405, str(limit))
-            query += ' limit {} offset {}'.format(limit, offset)
-        elif limit == 0:
-            raise OSSECAPIException(1406)
+    #     if limit:
+    #         if limit > common.maximum_database_limit:
+    #             raise OSSECAPIException(1405, str(limit))
+    #         query += ' limit {} offset {}'.format(limit, offset)
+    #     elif limit == 0:
+    #         raise OSSECAPIException(1406)
 
-        if sort and sort['fields']:
-            str_order = "desc" if sort['order'] == 'asc' else "asc"
-            order_str_fields = []
-            for field in sort['fields']:
-                order_str_field = '{0} {1}'.format(field, str_order)
-                order_str_fields.append(order_str_field)
-            query += ' order by ' + ','.join(order_str_fields)
+    #     if sort and sort['fields']:
+    #         str_order = "desc" if sort['order'] == 'asc' else "asc"
+    #         order_str_fields = []
+    #         for field in sort['fields']:
+    #             order_str_field = '{0} {1}'.format(field, str_order)
+    #             order_str_fields.append(order_str_field)
+    #         query += ' order by ' + ','.join(order_str_fields)
 
-        return wdb_conn.execute(query, count)
+    #     return wdb_conn.execute(query, count)
 
 
     def get_basic_information(self, select=None):

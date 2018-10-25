@@ -10,44 +10,50 @@ Wazuh has db (/var/ossec/var/db/global.db)
 ----------Modifying files----------
 Connection
     database.py
-
+    
     __init__.py
-        __init__
-            get_ossec_init
+        global.db
+            __init__
+                get_ossec_init
 
     agent.py
-        _load_info_from_DB
-        _add_manual
-        get_agent_attr
-        get_agents_overview
-        get_agents_summary
-        get_os_summary
-        get_agent_by_name
-        check_if_delete_agent
-        get_all_groups_sql
-        get_all_groups
-            get_hash
-        group_exists_sql
-        get_agent_group
-        get_outdated_agents
+        global.db
+            _load_info_from_DB
+            _add_manual
+            get_agent_attr
+            get_agents_overview
+            get_agents_summary
+            get_os_summary
+            get_agent_by_name
+            check_if_delete_agent
+            get_all_groups_sql
+            get_all_groups
+                get_hash
+            group_exists_sql
+            get_agent_group
+            get_outdated_agents
 
     distinct.py
-        _db_request
-            _get_total_items
-            _get_group_distinct
+        global.db
+            _db_request
+                _get_total_items
+                _get_group_distinct
 
     rootcheck.py
-        clear
-        print_db
-        get_pci
-        get_cis
-        last_scan
+        agent db
+            clear
+            print_db
+            get_pci
+            get_cis
+            last_scan
 
     syscheck.py
-        clear
-        last_scan
-        files
+        agent db
+            clear
+            last_scan
+            files
 
+#NOT IMPLEMENT
 WazuhDatabase
     wdb.py
 
@@ -85,4 +91,8 @@ sqlite -> mongodb
 3. sync information from ossec log and info files to the database
 	solution: use log-timestamp of nodejs. require to create a new module
 
+OSSEC
 Linux localhost.localdomain 3.10.0-327.el7.x86_64 #1 SMP Thu Nov 19 22:10:57 UTC 2015 x86_64 - OSSEC HIDS v2.9.0
+{sysname} {nodename} {release} {version} {machine} - {__ossec_name} {__version}
+Wazuh
+{sysname} |{nodename} |{release} |{version} |{machine} [{os_name}|{os_platform}: {os_version}] - {__ossec_name} {__ossec_version}

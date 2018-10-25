@@ -26,11 +26,11 @@ Connection
             get_os_summary
             get_agent_by_name
             check_if_delete_agent
-            get_all_groups_sql
-            get_all_groups
+            #NOT IMPLEMENT get_all_groups_sql
+            #NOT IMPLEMENT get_all_groups
                 get_hash
-            group_exists_sql
-            get_agent_group
+            #NOT IMPLEMENT group_exists_sql
+            #NOT IMPLEMENT get_agent_group
             get_outdated_agents
 
     distinct.py
@@ -44,7 +44,7 @@ Connection
             clear
             print_db
             get_pci
-            get_cis
+            #NOT IMPLEMENT get_cis
             last_scan
 
     syscheck.py

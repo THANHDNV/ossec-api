@@ -1,0 +1,11 @@
+global.db
+    agent
+        id
+        name
+        ip
+        key
+        date added
+        
+    info
+        max_agents
+        openssl_support

@@ -1,11 +1,44 @@
-global.db
-    agent
-        id
-        name
-        ip
-        key
-        date added
-        
-    info
-        max_agents
-        openssl_support
+global
+	agent
+		id
+		name
+		ip
+		key (hashed)
+		os
+		os_arch
+		version
+		config_sum
+		merge_sum
+		node_name 
+		lastAlive (The most recent time that the file's contents were modified - agent-info file)
+	info
+		a collection of various data in key value format
+
+({agent_id})
+	pm_event (rootcheck - /queue/rootcheck
+		id
+		date_first
+		date_last
+		log
+		pci_dss
+	fim_event (syscheck)
+		id
+		id_file
+		type
+		date
+		size
+		perm
+		uid
+		gid
+		md5
+		sha1
+		uname
+		gname
+		mtime
+		inode
+	fim_file (along with fim_event)
+		id
+		path
+		type (is registry or not - usually from Windows)
+
+wdb_insert_fim(sqlite3 *db, int type (registry or file), long timestamp, const char *f_name, const char *event, const sk_sum_t *sum)

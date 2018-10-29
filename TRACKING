@@ -94,6 +94,9 @@ NOT IMPLEMENT   '/rules/groups': Rule.get_groups,
 
 
 
+
+
+
 # Cluster
 # NOT IMPLEMENT
 '/cluster/status': cluster.get_status_json,

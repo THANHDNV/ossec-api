@@ -8,8 +8,8 @@ global
 		os_arch
 		version
 		config_sum
+		date_add
 		merge_sum
-		node_name 
 		lastAlive (The most recent time that the file's contents were modified - agent-info file)
 	info
 		a collection of various data in key value format

@@ -81,7 +81,6 @@ PENDING     '/agents/:agent_id': Agent.get_agent,
 '/rules': Rule.get_rules,
 NOT IMPLEMENT   '/rules/groups': Rule.get_groups,
 '/rules/pci': Rule.get_pci,
-'/rules/gdpr': Rule.get_gdpr,
 '/rules/files': Rule.get_rules_files,
 
 

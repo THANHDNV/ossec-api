@@ -46,10 +46,10 @@ def set_paths_based_on_ossec(o_path='/var/ossec'):
     ruleset_rules_path = '{0}/rules'.format(ruleset_path)
 
     global database_path
-    database_path = ossec_path + '/var/db'
+    database_path = "mongodb://127.0.0.1:27017"
 
-    global database_path_global
-    database_path_global = database_path + '/global.db'
+    global global_collection
+    global_collection = 'global'
 
     global wdb_socket_path
     wdb_socket_path = '{0}/queue/db/wdb'.format(ossec_path)
@@ -57,8 +57,8 @@ def set_paths_based_on_ossec(o_path='/var/ossec'):
     global api_config_path
     api_config_path = "{0}/api/configuration/config.js".format(ossec_path)
 
-    global database_path_agents
-    database_path_agents = database_path + '/agents'
+    # global database_path_agents
+    # database_path_agents = database_path + '/agents'
 
     global os_pidfile
     os_pidfile = "/var/run"

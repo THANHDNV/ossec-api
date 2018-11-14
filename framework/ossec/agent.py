@@ -5,7 +5,6 @@ from exception import OSSECAPIException
 from ossec_queue import OssecQueue
 from ossec_socket import OssecSocket
 from database import Connection
-from odb import OssecDBConnection
 from InputValidator import InputValidator
 import manager
 import common
@@ -136,41 +135,46 @@ class Agent:
         Gets attributes of existing agent.
         """
 
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OSSECAPIException(1600)
+        db_url = common.database_path
+        collection = common.global_collection
 
-        conn = Connection(db_global[0])
+        conn = Connection(db_url, collection)
         pending = True
 
-        # Query
-        query = "SELECT {0} FROM agent WHERE id = :id"
-        request = {'id': self.id}
+        # # Query
+        # query = "SELECT {0} FROM agent WHERE id = :id"
+        # request = {'id': self.id}
 
         valid_select_fields = set(self.fields.values())
 
-        # Select
-        if select:
-            select['fields'] = list(map(lambda x: self.fields[x] if x in self.fields else x, select['fields']))
-            select_fields_set = set(select['fields'])
-            if not select_fields_set.issubset(valid_select_fields):
-                incorrect_fields = list(map(lambda x: str(x), select_fields_set - valid_select_fields))
-                raise OSSECAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
-                        format(self.fields.keys(), incorrect_fields))
+        # # Select
+        # if select:
+        #     select['fields'] = list(map(lambda x: self.fields[x] if x in self.fields else x, select['fields']))
+        #     select_fields_set = set(select['fields'])
+        #     if not select_fields_set.issubset(valid_select_fields):
+        #         incorrect_fields = list(map(lambda x: str(x), select_fields_set - valid_select_fields))
+        #         raise OSSECAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
+        #                 format(self.fields.keys(), incorrect_fields))
 
-            # to compute the status field, lastKeepAlive and version are necessary
-            select_fields = {'id'} | select_fields_set if 'status' not in select_fields_set \
-                                                       else select_fields_set | {'id', 'last_keepalive', 'version'}
+        #     # to compute the status field, lastKeepAlive and version are necessary
+        #     select_fields = {'id'} | select_fields_set if 'status' not in select_fields_set \
+        #                                                else select_fields_set | {'id', 'last_keepalive', 'version'}
+        # else:
+        #     select_fields = valid_select_fields
+
+        # select_fields = list(select_fields)
+        # try:
+        #     select_fields[select_fields.index("group")] = "`group`"
+        # except ValueError as e:
+        #     pass
+
+        # conn.execute(query.format(','.join(select_fields)), request)
+
+        if select:
+            
         else:
             select_fields = valid_select_fields
-
-        select_fields = list(select_fields)
-        try:
-            select_fields[select_fields.index("group")] = "`group`"
-        except ValueError as e:
-            pass
-
-        conn.execute(query.format(','.join(select_fields)), request)
+            
         db_data = conn.fetch()
         if db_data is None:
             raise OSSECAPIException(1701)

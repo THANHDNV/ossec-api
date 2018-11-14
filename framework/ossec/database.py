@@ -1,35 +1,24 @@
 import common
 from exception import OSSECAPIException
 from os.path import isfile
-from distutils.version import LooseVersion
 import sqlite3
-
-# Check SQL compatibility: >= 3.7.0.0
-if LooseVersion(sqlite3.sqlite_version) < LooseVersion('3.7.0.0'):
-    msg = str(sqlite3.sqlite_version)
-    msg += "\nTry to export the internal SQLite library:"
-    msg += "\nexport LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{0}/framework/lib".format(common.ossec_path)
-    raise OSSECAPIException(2001, msg)
-
+from pymongo import MongoClient
 
 class Connection:
     """
     Represents a connection against a database
     """
 
-    def __init__(self, db_path=common.database_path_global, busy_sleep=0.001, max_attempts=1000):
+    def __init__(self, db_path=common.database_path, collection, busy_sleep=0.001, max_attempts=1000):
         """
         Constructor
         """
         self.db_path = db_path
-
-        if not isfile(db_path):
-            raise OSSECAPIException(2000)
+        self.collection = collection
 
         self.max_attempts = max_attempts
 
-        self.__conn = sqlite3.connect(database = db_path, timeout = busy_sleep)
-        self.__cur = self.__conn.cursor()
+        self.__conn = MongoClient(self.db_path)[self.collection]
 
     def __iter__(self):
         """

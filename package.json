@@ -1,0 +1,24 @@
+{
+    "name": "ossec_api",
+    "version": "0.0.0",
+    "description": "Ossec API",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/THANHDNV/ossec-api.git"
+    },
+    "dependencies": {
+        "apicache": "^1.2.3",
+        "body-parser": "^1.18.3",
+        "child_process": "^1.0.2",
+        "cors": "^2.8.5",
+        "crypto": "^1.0.1",
+        "fs": "0.0.1-security",
+        "http": "0.0.0",
+        "http-auth": "^3.2.3",
+        "https": "^1.0.0",
+        "moment": "^2.22.2",
+        "os": "^0.1.1",
+        "path": "^0.12.7",
+        "rotating-file-stream": "^1.3.9"
+    }
+}

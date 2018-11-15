@@ -34,6 +34,7 @@ config.cache_debug = "no";
 config.cache_time = "750";
 // Log path
 config.log_path = config.ossec_path + "/logs/api.log";
+// config.log_path = "api.log";
 // Python
 config.python = [
     // Default installation

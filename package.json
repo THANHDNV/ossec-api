@@ -12,6 +12,7 @@
         "child_process": "^1.0.2",
         "cors": "^2.8.5",
         "crypto": "^1.0.1",
+        "express": "^4.16.4",
         "fs": "0.0.1-security",
         "http": "0.0.0",
         "http-auth": "^3.2.3",

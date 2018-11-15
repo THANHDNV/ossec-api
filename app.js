@@ -94,6 +94,7 @@ try {
     res_h = require('./helpers/response_handler');
     logger = require('./helpers/logger');
 } catch (e) {
+    console.log(e);
     console.log("Dependencies not found. Try 'npm install' in /var/ossec/api. Exiting...");
     process.exit(1);
 }

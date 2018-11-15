@@ -1,0 +1,7 @@
+OssecAPI 2018-11-15 01:39:40 : Selected Python binary at 'python'.
+OssecAPI 2018-11-15 01:39:40 : Listening on: http://:::55000
+OssecAPI 2018-11-15 01:39:40 : Internal Error: uncaughtException
+OssecAPI 2018-11-15 01:39:40 : TypeError: Cannot read property 'uid' of undefined
+    at D:\Project\ossec-api\helpers\logger.js:16:22
+    at FSReqWrap.oncomplete (fs.js:152:21)
+OssecAPI 2018-11-15 01:39:40 : Exiting...

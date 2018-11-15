@@ -16,7 +16,7 @@ try:
     new_path = os_path.abspath('../framework')
     path.append(new_path)
     from ossec import Ossec_API
-    from ossec.exception import OSSECAPIException
+    from ossec.exception import OssecAPIException
     from ossec.agent import Agent
     from ossec.rule import Rule
     from ossec.decoder import Decoder
@@ -30,7 +30,7 @@ try:
 except (ImportError, SyntaxError) as e:
     error = str(e)
     error_ossec_package = -1
-except OSSECAPIException as e:
+except OssecAPIException as e:
     error_ossec_package = -3
     error = e.message
     error_code = e.code
@@ -239,7 +239,7 @@ if __name__ == "__main__":
             data = functions[request['function']]()
 
         print_json(data)
-    except OSSECAPIException as e:
+    except OssecAPIException as e:
         print_json(e.message, e.code)
         if debug:
             raise

@@ -3,7 +3,7 @@
 # Created by Wazuh, Inc. <info@wazuh.com>.
 # This program is a free software; you can redistribute it and/or modify it under the terms of GPLv2
 
-from exception import OSSECAPIException
+from exception import OssecAPIException
 import common
 import socket
 from json import dumps, loads
@@ -21,7 +21,7 @@ class OssecSocket:
             self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             self.s.connect(self.path)
         except:
-            raise OSSECAPIException(1013, self.path)
+            raise OssecAPIException(1013, self.path)
 
     def close(self):
         self.s.close()
@@ -30,10 +30,10 @@ class OssecSocket:
         try:
             sent = self.s.send(dumps(msg))
             if sent == 0:
-                raise OSSECAPIException(1014, self.path)
+                raise OssecAPIException(1014, self.path)
             return sent
         except:
-            raise OSSECAPIException(1014, self.path)
+            raise OssecAPIException(1014, self.path)
 
     def receive(self):
 
@@ -41,10 +41,10 @@ class OssecSocket:
             chunk = self.s.recv(OssecSocket.MAX_SIZE)
             response = loads(chunk)
         except:
-            raise OSSECAPIException(1014, self.path)
+            raise OssecAPIException(1014, self.path)
 
         if 'error' in response.keys():
             if response['error'] != 0:
-                raise OSSECAPIException(response['error'], response['message'], cmd_error=True)
+                raise OssecAPIException(response['error'], response['message'], cmd_error=True)
             else:
                 return response['data']

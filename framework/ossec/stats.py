@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from exception import OSSECAPIException
+from exception import OssecAPIException
 import common
 
 DAYS = "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
@@ -21,31 +21,31 @@ def totals(year, month, day):
         day = int(day)
 
         if year < 0 or day < 0 or day > 31:
-            raise OSSECAPIException(1307)
+            raise OssecAPIException(1307)
 
         day = "%02d" % day
     except ValueError:
-        raise OSSECAPIException(1307)
+        raise OssecAPIException(1307)
 
     if month not in MONTHS:
         try:
             index = int(month)
         except ValueError:
-            raise OSSECAPIException(1307)
+            raise OssecAPIException(1307)
 
         if index < 1 or index > 12:
-            raise OSSECAPIException(1307)
+            raise OssecAPIException(1307)
 
         try:
             month = MONTHS[index - 1]
         except IndexError:
-            raise OSSECAPIException(1307)
+            raise OssecAPIException(1307)
 
     try:
         stat_filename = common.stats_path + "/totals/" + str(year) + '/' + month + "/ossec-totals-" + day + ".log"
         stats = open(stat_filename, 'r')
     except IOError:
-        raise OSSECAPIException(1308, stat_filename)
+        raise OssecAPIException(1308, stat_filename)
 
     response = []
     alerts = []
@@ -68,7 +68,7 @@ def totals(year, month, day):
                 if len(data) in (0, 1):
                     continue
                 else:
-                    raise OSSECAPIException(1309)
+                    raise OssecAPIException(1309)
 
             hour = int(data[0])
             total_alerts = int(data[1])

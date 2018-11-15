@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from exception import OSSECAPIException
+from exception import OssecAPIException
 import common
 from tempfile import mkstemp
 from subprocess import call, CalledProcessError
@@ -62,19 +62,19 @@ def execute(command):
     except CalledProcessError as error:
         output = error.output
     except Exception as e:
-        raise OSSECAPIException(1002, "{0}: {1}".format(command, e))  # Error executing command
+        raise OssecAPIException(1002, "{0}: {1}".format(command, e))  # Error executing command
 
     try:
         output_json = json.loads(output)
     except Exception as e:
-        raise OSSECAPIException(1003, command)  # Command output not in json
+        raise OssecAPIException(1003, command)  # Command output not in json
 
     keys = output_json.keys()  # error and (data or message)
     if 'error' not in keys or ('data' not in keys and 'message' not in keys):
-        raise OSSECAPIException(1004, command)  # Malformed command output
+        raise OssecAPIException(1004, command)  # Malformed command output
 
     if output_json['error'] != 0:
-        raise OSSECAPIException(output_json['error'], output_json['message'], True)
+        raise OssecAPIException(output_json['error'], output_json['message'], True)
     else:
         return output_json['data']
 
@@ -90,9 +90,9 @@ def cut_array(array, offset, limit):
 
     if limit is not None:
         if limit > common.maximum_database_limit:
-            raise OSSECAPIException(1405, str(limit))
+            raise OssecAPIException(1405, str(limit))
         elif limit == 0:
-            raise OSSECAPIException(1406)
+            raise OssecAPIException(1406)
 
     elif not array or limit is None:
         return array
@@ -101,9 +101,9 @@ def cut_array(array, offset, limit):
     limit = int(limit)
 
     if offset < 0:
-        raise OSSECAPIException(1400)
+        raise OssecAPIException(1400)
     elif limit < 1:
-        raise OSSECAPIException(1401)
+        raise OssecAPIException(1401)
     else:
         return array[offset:offset + limit]
 
@@ -121,7 +121,7 @@ def sort_array(array, sort_by=None, order='asc', allowed_sort_fields=None):
         # Check if every element in sort['fields'] is in allowed_sort_fields
         if not sort_by.issubset(allowed_sort_fields):
             incorrect_fields = ', '.join(sort_by - allowed_sort_fields)
-            raise OSSECAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(', '.join(allowed_sort_fields), incorrect_fields))
+            raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(', '.join(allowed_sort_fields), incorrect_fields))
 
     if not array:
         return array
@@ -131,7 +131,7 @@ def sort_array(array, sort_by=None, order='asc', allowed_sort_fields=None):
     elif order.lower() == 'asc':
         order_desc = False
     else:
-        raise OSSECAPIException(1402)
+        raise OssecAPIException(1402)
 
     if allowed_sort_fields:
         check_sort_fields(set(allowed_sort_fields), set(sort_by))
@@ -151,7 +151,7 @@ def sort_array(array, sort_by=None, order='asc', allowed_sort_fields=None):
         if type(array) is set or (type(array[0]) is not dict and 'class \'wazuh' not in str(type(array[0]))):
             return sorted(array, reverse=order_desc)
         else:
-            raise OSSECAPIException(1404)
+            raise OssecAPIException(1404)
 
 
 def get_values(o, fields=None):

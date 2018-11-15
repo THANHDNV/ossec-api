@@ -4,7 +4,7 @@ import common
 from utils import execute
 from database import Connection
 from time import strftime
-from exception import OSSECAPIException
+from exception import OssecAPIException
 import re
 
 __version__ = '1.0.0'
@@ -18,9 +18,9 @@ msg += "\n  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rh/python27/root/usr/li
 try:
     from sys import version_info as python_version
     if python_version.major < 2 or (python_version.major == 2 and python_version.minor < 7 ):
-        raise OSSECAPIException(999, msg)
+        raise OssecAPIException(999, msg)
 except Exception as e:
-    raise OSSECAPIException(999, msg)
+    raise OssecAPIException(999, msg)
 
 class Ossec_API:
     """
@@ -87,7 +87,7 @@ class Ossec_API:
                             else:
                                 self.type = match.group(2)
         except:
-            raise OSSECAPIException(1005, self.OSSEC_INIT)
+            raise OssecAPIException(1005, self.OSSEC_INIT)
 
         # info DB
         conn = Connection(common.database_path_global)
@@ -111,7 +111,7 @@ class Ossec_API:
                     if match and len(match.groups()) == 2:
                         self.ruleset_version = match.group(2)
         except:
-            raise OSSECAPIException(1005, ruleset_version_file)
+            raise OssecAPIException(1005, ruleset_version_file)
 
         # Timezone info
         try:

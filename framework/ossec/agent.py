@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from utils import execute, cut_array, sort_array, search_array, chmod_r, chown_r, WazuhVersion, plain_dict_to_nested_dict, get_fields_to_nest
-from exception import OSSECAPIException
+from exception import OssecAPIException
 from ossec_queue import OssecQueue
 from ossec_socket import OssecSocket
 from database import Connection
@@ -35,7 +35,7 @@ def create_exception_dic(id, e):
     exception_dic['id'] = id
     exception_dic['error'] = {'message': e.message}
 
-    if isinstance(e, OSSECAPIException):
+    if isinstance(e, OssecAPIException):
         exception_dic['error']['code'] = e.code
     else:
         exception_dic['error']['code'] = 1000
@@ -71,7 +71,7 @@ class Agent:
     fields = {'id': 'id', 'name': 'name', 'ip': 'ip', 'status': 'status',
               'os.name': 'os_name', 'os.version': 'os_version', 'os.platform': 'os_platform',
               'version': 'version', 'manager_host': 'manager_host', 'dateAdd': 'date_add',
-              'group': '`group`', 'mergedSum': 'merged_sum', 'configSum': 'config_sum',
+              'mergedSum': 'merged_sum', 'configSum': 'config_sum',
               'os.codename': 'os_codename', 'os.major': 'os_major', 'os.minor': 'os_minor',
               'os.uname': 'os_uname', 'os.arch': 'os_arch', 'os.build':'os_build',
               'node_name': 'node_name', 'lastKeepAlive': 'last_keepalive', 'key':'key'}
@@ -147,37 +147,37 @@ class Agent:
 
         valid_select_fields = set(self.fields.values())
 
-        # # Select
-        # if select:
-        #     select['fields'] = list(map(lambda x: self.fields[x] if x in self.fields else x, select['fields']))
-        #     select_fields_set = set(select['fields'])
-        #     if not select_fields_set.issubset(valid_select_fields):
-        #         incorrect_fields = list(map(lambda x: str(x), select_fields_set - valid_select_fields))
-        #         raise OSSECAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
-        #                 format(self.fields.keys(), incorrect_fields))
-
-        #     # to compute the status field, lastKeepAlive and version are necessary
-        #     select_fields = {'id'} | select_fields_set if 'status' not in select_fields_set \
-        #                                                else select_fields_set | {'id', 'last_keepalive', 'version'}
-        # else:
-        #     select_fields = valid_select_fields
-
-        # select_fields = list(select_fields)
-        # try:
-        #     select_fields[select_fields.index("group")] = "`group`"
-        # except ValueError as e:
-        #     pass
-
-        # conn.execute(query.format(','.join(select_fields)), request)
-
+        # Select
         if select:
-            
+            select['fields'] = list(map(lambda x: self.fields[x] if x in self.fields else x, select['fields']))
+            select_fields_set = set(select['fields'])
+            if not select_fields_set.issubset(valid_select_fields):
+                incorrect_fields = list(map(lambda x: str(x), select_fields_set - valid_select_fields))
+                raise OssecAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
+                        format(self.fields.keys(), incorrect_fields))
+
+            # to compute the status field, lastKeepAlive and version are necessary
+            select_fields = {'id'} | select_fields_set if 'status' not in select_fields_set \
+                                                       else select_fields_set | {'id', 'last_keepalive', 'version'}
         else:
             select_fields = valid_select_fields
+
+        select_fields = list(select_fields)
+        try:
+            select_fields[select_fields.index("group")] = "`group`"
+        except ValueError as e:
+            pass
+
+        conn.execute(query.format(','.join(select_fields)), request)
+
+        # if select:
+            
+        # else:
+        #     select_fields = valid_select_fields
             
         db_data = conn.fetch()
         if db_data is None:
-            raise OSSECAPIException(1701)
+            raise OssecAPIException(1701)
 
         no_result = True
         for field,value in zip(select_fields, db_data):
@@ -251,7 +251,7 @@ class Agent:
             self.ip = '127.0.0.1' if 'ip' in select_fields else None
 
         if no_result:
-            raise OSSECAPIException(1701, self.id)
+            raise OssecAPIException(1701, self.id)
 
 
     # def _load_info_from_agent_db(self, table, select, filters={}, count=False, offset=0, limit=common.database_limit, sort={}, search={}):
@@ -280,10 +280,10 @@ class Agent:
 
     #     if limit:
     #         if limit > common.maximum_database_limit:
-    #             raise OSSECAPIException(1405, str(limit))
+    #             raise OssecAPIException(1405, str(limit))
     #         query += ' limit {} offset {}'.format(limit, offset)
     #     elif limit == 0:
-    #         raise OSSECAPIException(1406)
+    #         raise OssecAPIException(1406)
 
     #     if sort and sort['fields']:
     #         str_order = "desc" if sort['order'] == 'asc' else "asc"
@@ -365,13 +365,13 @@ class Agent:
         """
 
         if self.id == "000":
-            raise OSSECAPIException(1703)
+            raise OssecAPIException(1703)
         else:
             # Check if agent exists and it is active
             agent_info = self.get_basic_information()
 
             if self.status.lower() != 'active':
-                raise OSSECAPIException(1707, '{0} - {1}'.format(self.id, self.status))
+                raise OssecAPIException(1707, '{0} - {1}'.format(self.id, self.status))
 
             oq = OssecQueue(common.ARQUEUE)
             ret_msg = oq.send_msg_to_agent(OssecQueue.RESTART_AGENTS, self.id)
@@ -406,7 +406,7 @@ class Agent:
 
         if self.use_only_authd():
             if not is_authd_running:
-                raise OSSECAPIException(1726)
+                raise OssecAPIException(1726)
 
         if not is_authd_running:
             data = self._remove_manual(backup, purge)
@@ -467,7 +467,7 @@ class Agent:
 
         if not agent_found:
             remove(f_keys_temp)
-            raise OSSECAPIException(1701, self.id)
+            raise OssecAPIException(1701, self.id)
 
         # Overwrite client.keys
         move(f_keys_temp, common.client_keys)
@@ -543,7 +543,7 @@ class Agent:
 
         if self.use_only_authd():
             if not is_authd_running:
-                raise OSSECAPIException(1726)
+                raise OssecAPIException(1726)
 
         if not is_authd_running:
             data = self._add_manual(name, ip, id, key, force)
@@ -573,7 +573,7 @@ class Agent:
         ip = ip.lower()
 
         if key and len(key) < 64:
-            raise OSSECAPIException(1709)
+            raise OssecAPIException(1709)
 
         force = force if type(force) == int else int(force)
 
@@ -615,21 +615,21 @@ class Agent:
         ip = ip.lower()
 
         if key and len(key) < 64:
-            raise OSSECAPIException(1709)
+            raise OssecAPIException(1709)
 
         force = force if type(force) == int else int(force)
 
         # Check manager name
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
         conn.execute("SELECT name FROM agent WHERE (id = 0)")
         manager_name = str(conn.fetch()[0])
 
         if name == manager_name:
-            raise OSSECAPIException(1705, name)
+            raise OssecAPIException(1705, name)
 
         # Check if ip, name or id exist in client.keys
         last_id = 0
@@ -655,15 +655,15 @@ class Agent:
 
                     check_remove = 0
                     if id and id == line_data[0]:
-                        raise OSSECAPIException(1708, id)
+                        raise OssecAPIException(1708, id)
                     if name == line_data[1]:
                         if force < 0:
-                            raise OSSECAPIException(1705, name)
+                            raise OssecAPIException(1705, name)
                         else:
                             check_remove = 1
                     if ip != 'any' and ip == line_data[2]:
                         if force < 0:
-                            raise OSSECAPIException(1706, ip)
+                            raise OssecAPIException(1706, ip)
                         else:
                             check_remove = 2
 
@@ -672,9 +672,9 @@ class Agent:
                             Agent.remove_agent(line_data[0], backup=True)
                         else:
                             if check_remove == 1:
-                                raise OSSECAPIException(1705, name)
+                                raise OssecAPIException(1705, name)
                             else:
-                                raise OSSECAPIException(1706, ip)
+                                raise OssecAPIException(1706, ip)
 
 
                 if not id:
@@ -712,14 +712,14 @@ class Agent:
 
                 # Overwrite client.keys
                 move(f_keys_temp, common.client_keys)
-            except OSSECAPIException as ex:
+            except OssecAPIException as ex:
                 fcntl.lockf(lock_file, fcntl.LOCK_UN)
                 lock_file.close()
                 raise ex
             except Exception as ex:
                 fcntl.lockf(lock_file, fcntl.LOCK_UN)
                 lock_file.close()
-                raise OSSECAPIException(1725, str(ex))
+                raise OssecAPIException(1725, str(ex))
 
 
             fcntl.lockf(lock_file, fcntl.LOCK_UN)
@@ -729,46 +729,13 @@ class Agent:
         self.internal_key = agent_key
         self.key = self.compute_key()
 
-
-    def _remove_single_group(self, group_id):
-        """
-        Remove the group in every agent.
-        :param group_id: Group ID.
-        :return: Confirmation message.
-        """
-
-        if group_id.lower() == "default":
-            raise OSSECAPIException(1712)
-
-        if not self.group_exists(group_id):
-            raise OSSECAPIException(1710, group_id)
-
-        ids = []
-
-        # Remove agent group
-        agents = self.get_agent_group(group_id=group_id, limit=None)
-        for agent in agents['items']:
-            self.unset_group(agent['id'])
-            ids.append(agent['id'])
-
-        # Remove group directory
-        group_path = "{0}/{1}".format(common.shared_path, group_id)
-        group_backup = "{0}/groups/{1}_{2}".format(common.backup_path, group_id, int(time()))
-        if path.exists(group_path):
-            move(group_path, group_backup)
-
-        msg = "Group '{0}' removed.".format(group_id)
-
-        return {'msg': msg, 'affected_agents': ids}
-
-
     def get_agent_attr(self, attr):
         """
         Returns a string with an agent's os name
         """
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
         query = "SELECT :attr FROM agent WHERE id = :id"
@@ -815,7 +782,7 @@ class Agent:
             elif status == 'pending':
                 query += 'last_keepalive IS NOT NULL AND version IS NULL OR '
             else:
-                raise OSSECAPIException(1729, status)
+                raise OssecAPIException(1729, status)
         query = query[:-3] + ")"  # Remove the last OR from query
 
         return query
@@ -885,7 +852,7 @@ class Agent:
 
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
 
@@ -902,7 +869,7 @@ class Agent:
 
             if not set(select['fields']).issubset(valid_select_fields):
                 incorrect_fields = list(map(lambda x: str(x), set(select['fields']) - valid_select_fields))
-                raise OSSECAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
+                raise OssecAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
                                     format(Agent.fields.keys(), incorrect_fields))
 
             select_fields_set = set(select['fields'])
@@ -940,7 +907,7 @@ class Agent:
                 allowed_sort_fields = set(Agent.fields.keys())
                 # Check if every element in sort['fields'] is in allowed_sort_fields.
                 if not set(sort['fields']).issubset(allowed_sort_fields):
-                    raise OSSECAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
+                    raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
 
                 order_str_fields = []
                 for i in sort['fields']:
@@ -965,12 +932,12 @@ class Agent:
 
         if limit:
             if limit > common.maximum_database_limit:
-                raise OSSECAPIException(1405, str(limit))
+                raise OssecAPIException(1405, str(limit))
             query += ' LIMIT :offset,:limit'
             request['offset'] = offset
             request['limit'] = limit
         elif limit == 0:
-            raise OSSECAPIException(1406)
+            raise OssecAPIException(1406)
 
         conn.execute(query.format(','.join(min_select_fields)), request)
 
@@ -988,7 +955,7 @@ class Agent:
 
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
 
@@ -1031,7 +998,7 @@ class Agent:
         # Connect DB
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
 
@@ -1057,7 +1024,7 @@ class Agent:
                 allowed_sort_fields = fields.keys()
                 # Check if every element in sort['fields'] is in allowed_sort_fields.
                 if not set(sort['fields']).issubset(allowed_sort_fields):
-                    raise OSSECAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
+                    raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
 
                 order_str_fields = ['`{0}` {1}'.format(fields[i], sort['order']) for i in sort['fields']]
                 query += ' ORDER BY ' + ','.join(order_str_fields)
@@ -1069,12 +1036,12 @@ class Agent:
         # OFFSET - LIMIT
         if limit:
             if limit > common.maximum_database_limit:
-                raise OSSECAPIException(1405, str(limit))
+                raise OssecAPIException(1405, str(limit))
             query += ' LIMIT :offset,:limit'
             request['offset'] = offset
             request['limit'] = limit
         elif limit == 0:
-            raise OSSECAPIException(1406)
+            raise OssecAPIException(1406)
 
         conn.execute(query.format(','.join(select)), request)
 
@@ -1101,7 +1068,7 @@ class Agent:
             return ret_msg
         else:
             if not agent_id:
-                raise OSSECAPIException(1732)
+                raise OssecAPIException(1732)
             failed_ids = list()
             affected_agents = list()
             if isinstance(agent_id, list):
@@ -1139,14 +1106,14 @@ class Agent:
         """
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
         conn.execute("SELECT id FROM agent WHERE name = :name", {'name': agent_name})
         try:
             agent_id = str(conn.fetch()[0]).zfill(3)
         except TypeError as e:
-            raise OSSECAPIException(1701, agent_name)
+            raise OssecAPIException(1701, agent_name)
 
         return Agent(agent_id).get_basic_information(select)
 
@@ -1225,7 +1192,7 @@ class Agent:
             for id in list_agent_ids:
                 try:
                     if id not in id_purgeable_agents:
-                        raise OSSECAPIException(1731, "The agent has a status different to '{}' or the specified time frame 'older_than {}' does not apply.".format(status, older_than))
+                        raise OssecAPIException(1731, "The agent has a status different to '{}' or the specified time frame 'older_than {}' does not apply.".format(status, older_than))
                     Agent(id).remove(backup, purge)
                     affected_agents.append(id)
                 except Exception as e:
@@ -1305,503 +1272,6 @@ class Agent:
         return remove_agent
 
     @staticmethod
-    def get_all_groups_sql(offset=0, limit=common.database_limit, sort=None, search=None):
-        """
-        Gets the existing groups.
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-
-        # Connect DB
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OSSECAPIException(1600)
-
-        conn = Connection(db_global[0])
-
-        # Init query
-        query = "SELECT DISTINCT {0} FROM agent WHERE `group` IS NOT null"
-        fields = {'name': 'group'}  # field: db_column
-        select = ["`group`"]
-        request = {}
-
-        # Search
-        if search:
-            query += " AND NOT" if bool(search['negation']) else ' AND'
-            query += " ( `group` LIKE :search )"
-            request['search'] = '%{0}%'.format(search['value'])
-
-        # Count
-        conn.execute(query.format('COUNT(DISTINCT `group`)'), request)
-        data = {'totalItems': conn.fetch()[0]}
-
-        # Sorting
-        if sort:
-            if sort['fields']:
-                allowed_sort_fields = fields.keys()
-                # Check if every element in sort['fields'] is in allowed_sort_fields.
-                if not set(sort['fields']).issubset(allowed_sort_fields):
-                    raise OSSECAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
-
-                order_str_fields = ['`{0}` {1}'.format(fields[i], sort['order']) for i in sort['fields']]
-                query += ' ORDER BY ' + ','.join(order_str_fields)
-            else:
-                query += ' ORDER BY `group` {0}'.format(sort['order'])
-        else:
-            query += ' ORDER BY `group` ASC'
-
-        # OFFSET - LIMIT
-        if limit:
-            if limit > common.maximum_database_limit:
-                raise OSSECAPIException(1405, str(limit))
-            query += ' LIMIT :offset,:limit'
-            request['offset'] = offset
-            request['limit'] = limit
-        elif limit == 0:
-            raise OSSECAPIException(1406)
-
-        # Data query
-        conn.execute(query.format(','.join(select)), request)
-
-        data['items'] = []
-
-        for tuple in conn:
-            if tuple[0] != None:
-                data['items'].append(tuple[0])
-
-        return data
-
-    @staticmethod
-    def get_all_groups(offset=0, limit=common.database_limit, sort=None, search=None, hash_algorithm='md5'):
-        """
-        Gets the existing groups.
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-        def get_hash(file, hash_algorithm='md5'):
-            filename = "{0}/{1}".format(common.shared_path, file)
-
-            # check hash algorithm
-            try:
-                algorithm_list = hashlib.algorithms_available
-            except Exception as e:
-                algorithm_list = hashlib.algorithms
-
-            if not hash_algorithm in algorithm_list:
-                raise OSSECAPIException(1723, "Available algorithms are {0}.".format(algorithm_list))
-
-            hashing = hashlib.new(hash_algorithm)
-
-            try:
-                with open(filename, 'rb') as f:
-                    hashing.update(f.read())
-            except IOError:
-                return None
-
-            return hashing.hexdigest()
-
-        # Connect DB
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OSSECAPIException(1600)
-
-        conn = Connection(db_global[0])
-        query = "SELECT {0} FROM agent WHERE `group` = :group_id"
-
-        # Group names
-        data = []
-        for entry in listdir(common.shared_path):
-            full_entry = path.join(common.shared_path, entry)
-            if not path.isdir(full_entry):
-                continue
-
-            # Group count
-            request = {'group_id': entry}
-            conn.execute(query.format('COUNT(*)'), request)
-
-            # merged.mg and agent.conf sum
-            merged_sum = get_hash(entry + "/merged.mg", hash_algorithm)
-            conf_sum   = get_hash(entry + "/agent.conf", hash_algorithm)
-
-            item = {'count':conn.fetch()[0], 'name': entry}
-
-            if merged_sum:
-                item['mergedSum'] = merged_sum
-
-            if conf_sum:
-                item['configSum'] = conf_sum
-
-            data.append(item)
-
-
-        if search:
-            data = search_array(data, search['value'], search['negation'], fields=['name'])
-
-        if sort:
-            data = sort_array(data, sort['fields'], sort['order'])
-        else:
-            data = sort_array(data, ['name'])
-
-        return {'items': cut_array(data, offset, limit), 'totalItems': len(data)}
-
-    @staticmethod
-    def group_exists_sql(group_id):
-        """
-        Checks if the group exists
-        :param group_id: Group ID.
-        :return: True if group exists, False otherwise
-        """
-        # Input Validation of group_id
-        if not InputValidator().group(group_id):
-            raise OSSECAPIException(1722)
-
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OSSECAPIException(1600)
-
-        conn = Connection(db_global[0])
-
-        query = "SELECT `group` FROM agent WHERE `group` = :group_id LIMIT 1"
-        request = {'group_id': group_id}
-
-        conn.execute(query, request)
-
-        for tuple in conn:
-
-            if tuple[0] != None:
-                return True
-            else:
-                return False
-
-    @staticmethod
-    def group_exists(group_id):
-        """
-        Checks if the group exists
-        :param group_id: Group ID.
-        :return: True if group exists, False otherwise
-        """
-        # Input Validation of group_id
-        if not InputValidator().group(group_id):
-            raise OSSECAPIException(1722)
-
-        if path.exists("{0}/{1}".format(common.shared_path, group_id)):
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def get_agent_group(group_id, offset=0, limit=common.database_limit, sort=None, search=None, select=None, filters={}):
-        """
-        Gets the agents in a group
-        :param group_id: Group ID.
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-
-        # Connect DB
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OSSECAPIException(1600)
-
-        conn = Connection(db_global[0])
-        valid_select_fiels = set(Agent.fields.values()) | {'status'}
-        search_fields = {"id", "name", "os_name", "ip", "status", "version", "os_platform", "manager_host"}
-
-        # Init query
-        query = "SELECT {0} FROM agent WHERE `group` = :group_id" if group_id is not None else "SELECT {0} FROM agent WHERE `group` IS NULL AND id != 0"
-        request = {'group_id': group_id}
-
-        # Select
-        if select:
-            select['fields'] = list(map(lambda x: Agent.fields[x] if x in Agent.fields else x, select['fields']))
-            select_fields_param = set(select['fields'])
-
-            if not select_fields_param.issubset(valid_select_fiels):
-                uncorrect_fields = select_fields_param - valid_select_fiels
-                raise OSSECAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
-                        format(', '.join(list(valid_select_fiels)), ', '.join(uncorrect_fields)))
-
-            select_fields = {'id'} | select_fields_param if 'status' not in select_fields_param \
-                                                         else select_fields_param | {'id', 'last_keepalive', 'version'}
-        else:
-            select_fields = valid_select_fiels
-
-        # save the fields that the user has selected
-        user_select_fields = (set(select['fields']) if select else select_fields.copy()) | {'id'}
-
-        query = Agent.filter_query(filters, request, query)
-
-        # Search
-        if search:
-            query += " AND NOT" if bool(search['negation']) else ' AND'
-            query += " (" + " OR ".join(x + ' LIKE :search' for x in search_fields) + " )"
-            request['search'] = '%{0}%'.format(int(search['value']) if search['value'].isdigit()
-                                                                    else search['value'])
-
-        # Count
-        conn.execute(query.format('COUNT(*)'), request)
-        data = {'totalItems': conn.fetch()[0]}
-
-        # Sorting
-        if sort:
-            if sort['fields']:
-                allowed_sort_fields = set(Agent.fields.keys())
-                # Check if every element in sort['fields'] is in allowed_sort_fields.
-                if not set(sort['fields']).issubset(allowed_sort_fields):
-                    raise OSSECAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.\
-                        format(allowed_sort_fields, sort['fields']))
-
-                order_str_fields = ['{0} {1}'.format(Agent.fields[i], sort['order']) for i in sort['fields']]
-                query += ' ORDER BY ' + ','.join(order_str_fields)
-            else:
-                query += ' ORDER BY id {0}'.format(sort['order'])
-        else:
-            query += ' ORDER BY id ASC'
-
-        # OFFSET - LIMIT
-        if limit:
-            if limit > common.maximum_database_limit:
-                raise OSSECAPIException(1405, str(limit))
-            query += ' LIMIT :offset,:limit'
-            request['offset'] = offset
-            request['limit'] = limit
-        elif limit == 0:
-            raise OSSECAPIException(1406)
-
-        if 'group' in select_fields:
-            select_fields.remove('group')
-            select_fields.add('`group`')
-
-        # Data query
-        conn.execute(query.format(','.join(select_fields)), request)
-
-        data['items'] = Agent.get_agents_dict(conn, select_fields, user_select_fields)
-
-        return data
-
-
-    @staticmethod
-    def get_agents_without_group(offset=0, limit=common.database_limit, sort=None, search=None, select=None, filters={}):
-        """
-        Gets the agents in a group
-        :param group_id: Group ID.
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-        return Agent.get_agent_group(group_id=None, offset=offset, limit=limit, sort=sort, search=search, select=select,
-                                     filters=filters)
-
-
-    @staticmethod
-    def get_group_files(group_id=None, offset=0, limit=common.database_limit, sort=None, search=None):
-        """
-        Gets the group files.
-        :param group_id: Group ID.
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-
-        group_path = common.shared_path
-        if group_id:
-            if not Agent.group_exists(group_id):
-                raise OSSECAPIException(1710, group_id)
-            group_path = "{0}/{1}".format(common.shared_path, group_id)
-
-        if not path.exists(group_path):
-            raise OSSECAPIException(1006, group_path)
-
-        try:
-            data = []
-            for entry in listdir(group_path):
-                item = {}
-                try:
-                    item['filename'] = entry
-                    with open("{0}/{1}".format(group_path, entry), 'rb') as f:
-                        item['hash'] = hashlib.md5(f.read()).hexdigest()
-                    data.append(item)
-                except (OSError, IOError) as e:
-                    pass
-
-            try:
-                # ar.conf
-                ar_path = "{0}/ar.conf".format(common.shared_path, entry)
-                with open(ar_path, 'rb') as f:
-                    hash_ar = hashlib.md5(f.read()).hexdigest()
-                data.append({'filename': "ar.conf", 'hash': hash_ar})
-            except (OSError, IOError) as e:
-                pass
-
-            if search:
-                data = search_array(data, search['value'], search['negation'])
-
-            if sort:
-                data = sort_array(data, sort['fields'], sort['order'])
-            else:
-                data = sort_array(data, ["filename"])
-
-            return {'items': cut_array(data, offset, limit), 'totalItems': len(data)}
-        except Exception as e:
-            raise OSSECAPIException(1727, str(e))
-
-
-    @staticmethod
-    def create_group(group_id):
-        """
-        Creates a group.
-        :param group_id: Group ID.
-        :return: Confirmation message.
-        """
-        # Input Validation of group_id
-        if not InputValidator().group(group_id):
-            raise OSSECAPIException(1722)
-
-        group_path = "{0}/{1}".format(common.shared_path, group_id)
-
-        if group_id.lower() == "default" or path.exists(group_path):
-            raise OSSECAPIException(1711, group_id)
-
-        # Create group in /etc/shared
-        group_def_path = "{0}/default".format(common.shared_path)
-        try:
-            copytree(group_def_path, group_path)
-            chown_r(group_path, common.ossec_uid, common.ossec_gid)
-            chmod_r(group_path, 0o660)
-            chmod(group_path, 0o770)
-            msg = "Group '{0}' created.".format(group_id)
-        except Exception as e:
-            raise OSSECAPIException(1005, str(e))
-
-        return msg
-
-
-    @staticmethod
-    def remove_group(group_id):
-        """
-        Remove the group in every agent.
-        :param group_id: Group ID.
-        :return: Confirmation message.
-        """
-
-        # Input Validation of group_id
-        if not InputValidator().group(group_id):
-            raise OSSECAPIException(1722)
-
-
-        failed_ids = []
-        ids = []
-        affected_agents = []
-        if isinstance(group_id, list):
-            for id in group_id:
-
-                if id.lower() == "default":
-                    raise OSSECAPIException(1712)
-
-                try:
-                    removed = Agent()._remove_single_group(id)
-                    ids.append(id)
-                    affected_agents += removed['affected_agents']
-                except Exception as e:
-                    failed_ids.append(create_exception_dic(id, e))
-        else:
-            if group_id.lower() == "default":
-                raise OSSECAPIException(1712)
-
-            try:
-                removed = Agent()._remove_single_group(group_id)
-                ids.append(group_id)
-                affected_agents += removed['affected_agents']
-            except Exception as e:
-                failed_ids.append(create_exception_dic(group_id, e))
-
-        final_dict = {}
-        if not failed_ids:
-            message = 'All selected groups were removed'
-            final_dict = {'msg': message, 'ids': ids, 'affected_agents': affected_agents}
-        else:
-            message = 'Some groups were not removed'
-            final_dict = {'msg': message, 'failed_ids': failed_ids, 'ids': ids, 'affected_agents': affected_agents}
-
-        return final_dict
-
-
-    @staticmethod
-    def set_group(agent_id, group_id, force=False):
-        """
-        Set a group to an agent.
-        :param agent_id: Agent ID.
-        :param group_id: Group ID.
-        :param force: No check if agent exists
-        :return: Confirmation message.
-        """
-        # Input Validation of group_id
-        if not InputValidator().group(group_id):
-            raise OSSECAPIException(1722)
-
-        agent_id = agent_id.zfill(3)
-        if agent_id == "000":
-            raise OSSECAPIException(1703)
-
-        # Check if agent exists
-        if not force:
-            Agent(agent_id).get_basic_information()
-
-        # Assign group in /queue/agent-groups
-        agent_group_path = "{0}/{1}".format(common.groups_path, agent_id)
-        try:
-            new_file = False if path.exists(agent_group_path) else True
-
-            f_group = open(agent_group_path, 'w')
-            f_group.write("{0}\n".format(group_id))
-            f_group.close()
-
-            if new_file:
-                chown(agent_group_path, common.ossec_uid, common.ossec_gid)
-                chmod(agent_group_path, 0o660)
-        except Exception as e:
-            raise OSSECAPIException(1005, str(e))
-
-        # Create group in /etc/shared
-        if not Agent.group_exists(group_id):
-            Agent.create_group(group_id)
-
-        return "Group '{0}' set to agent '{1}'.".format(group_id, agent_id)
-
-
-    @staticmethod
-    def unset_group(agent_id, force=False):
-        """
-        Unset the agent group. The group will be 'default'.
-        :param agent_id: Agent ID.
-        :param force: No check if agent exists
-        :return: Confirmation message.
-        """
-        # Check if agent exists
-        if not force:
-            Agent(agent_id).get_basic_information()
-
-        agent_group_path = "{0}/{1}".format(common.groups_path, agent_id)
-        if path.exists(agent_group_path):
-            with open(agent_group_path, "w+") as fo:
-                fo.write("default")
-
-        return "Group unset for agent '{0}'.".format(agent_id)
-
-    @staticmethod
     def get_outdated_agents(offset=0, limit=common.database_limit, sort=None):
         """
         Gets the outdated agents.
@@ -1814,7 +1284,7 @@ class Agent:
         # Connect DB
         db_global = glob(common.database_path_global)
         if not db_global:
-            raise OSSECAPIException(1600)
+            raise OssecAPIException(1600)
 
         conn = Connection(db_global[0])
 
@@ -1839,7 +1309,7 @@ class Agent:
                 allowed_sort_fields = fields.keys()
                 # Check if every element in sort['fields'] is in allowed_sort_fields.
                 if not set(sort['fields']).issubset(allowed_sort_fields):
-                    raise OSSECAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
+                    raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
 
                 order_str_fields = ['{0} {1}'.format(fields[i], sort['order']) for i in sort['fields']]
                 query += ' ORDER BY ' + ','.join(order_str_fields)
@@ -1851,12 +1321,12 @@ class Agent:
         # OFFSET - LIMIT
         if limit:
             if limit > common.maximum_database_limit:
-                raise OSSECAPIException(1405, str(limit))
+                raise OssecAPIException(1405, str(limit))
             query += ' LIMIT :offset,:limit'
             request['offset'] = offset
             request['limit'] = limit
         elif limit == 0:
-            raise OSSECAPIException(1406)
+            raise OssecAPIException(1406)
 
         # Data query
         conn.execute(query.format(','.join(select)), request)
@@ -1894,7 +1364,7 @@ class Agent:
 
         if self.os['platform'] in invalid_platforms or (self.os['platform'], self.os['major']) in not_valid_versions:
             error = "The WPK for this platform is not available."
-            raise OSSECAPIException(1713, error)
+            raise OssecAPIException(1713, error)
 
         protocol = self._get_protocol(wpk_repo, use_http)
         if (version is None or version[:4] >= "v3.4") and self.os['platform'] != "windows":
@@ -1910,13 +1380,13 @@ class Agent:
         try:
             result = urlopen(versions_url)
         except HTTPError as e:
-            raise OSSECAPIException(1713, e.code)
+            raise OssecAPIException(1713, e.code)
         except URLError as e:
             if "SSL23_GET_SERVER_HELLO" in str(e.reason):
               error = "HTTPS requires Python 2.7.9 or newer. You may also run with Python 3."
             else:
               error = str(e.reason)
-            raise OSSECAPIException(1713, error)
+            raise OssecAPIException(1713, error)
 
         lines = result.readlines()
         lines = filter(None, lines)
@@ -1947,7 +1417,7 @@ class Agent:
                     agent_new_shasum = versions[1]
                     break
         if not agent_new_ver:
-            raise OSSECAPIException(1718, version)
+            raise OssecAPIException(1718, version)
 
         # Get manager version
         manager = Agent(id=0)
@@ -1963,10 +1433,10 @@ class Agent:
             print("Agent new version: {0}".format(agent_new_ver))
 
         if WazuhVersion(manager_ver.split(" ")[1]) < WazuhVersion(agent_new_ver):
-            raise OSSECAPIException(1717, "Manager: {0} / Agent: {1} -> {2}".format(manager_ver.split(" ")[1], agent_ver.split(" ")[1], agent_new_ver))
+            raise OssecAPIException(1717, "Manager: {0} / Agent: {1} -> {2}".format(manager_ver.split(" ")[1], agent_ver.split(" ")[1], agent_new_ver))
 
         if (WazuhVersion(agent_ver.split(" ")[1]) >= WazuhVersion(agent_new_ver) and not force):
-            raise OSSECAPIException(1716, "Agent ver: {0} / Agent new ver: {1}".format(agent_ver.split(" ")[1], agent_new_ver))
+            raise OssecAPIException(1716, "Agent ver: {0} / Agent new ver: {1}".format(agent_ver.split(" ")[1], agent_new_ver))
 
         protocol = self._get_protocol(wpk_repo, use_http)
         # Generating file name
@@ -2011,20 +1481,20 @@ class Agent:
             with open(wpk_file_path, "wb") as local_file:
                 local_file.write(result.read())
         except HTTPError as e:
-            raise OSSECAPIException(1714, e.code)
+            raise OssecAPIException(1714, e.code)
         except URLError as e:
             if "SSL23_GET_SERVER_HELLO" in str(e.reason):
               error = "HTTPS requires Python 2.7.9 or newer. You may also run with Python 3."
             else:
               error = str(e.reason)
-            raise OSSECAPIException(1714, error)
+            raise OssecAPIException(1714, error)
 
         # Get SHA1 file sum
         sha1hash = hashlib.sha1(open(wpk_file_path, 'rb').read()).hexdigest()
 
         # Comparing SHA1 hash
         if not sha1hash == agent_new_shasum:
-            raise OSSECAPIException(1714)
+            raise OssecAPIException(1714)
 
         if debug:
             print("WPK file downloaded: {0} - SHA1SUM: {1}".format(wpk_file_path, sha1hash))
@@ -2071,7 +1541,7 @@ class Agent:
             if debug:
                 print("RESPONSE: {0}".format(data))
         if data != 'ok':
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
         # Sending reset lock timeout
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -2085,7 +1555,7 @@ class Agent:
         if debug:
             print("RESPONSE: {0}".format(data))
         if data != 'ok':
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
 
         # Sending file to agent
@@ -2093,7 +1563,7 @@ class Agent:
             print("Chunk size: {0} bytes".format(chunk_size))
         file = open(common.ossec_path + "/var/upgrade/" + wpk_file, "rb")
         if not file:
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
         if debug:
             print("Sending: {0}".format(common.ossec_path + "/var/upgrade/" + wpk_file))
         try:
@@ -2108,7 +1578,7 @@ class Agent:
                 data = s.recv(1024).decode()
                 s.close()
                 if data != 'ok':
-                    raise OSSECAPIException(1715, data.replace("err ",""))
+                    raise OssecAPIException(1715, data.replace("err ",""))
                 bytes_read = file.read(chunk_size)
                 if show_progress:
                     bytes_read_acum = bytes_read_acum + len(bytes_read)
@@ -2129,7 +1599,7 @@ class Agent:
         if debug:
             print("RESPONSE: {0}".format(data))
         if data != 'ok':
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
         # Get file SHA1 from agent and compare
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -2143,12 +1613,12 @@ class Agent:
         if debug:
             print("RESPONSE: {0}".format(data))
         if not data.startswith('ok '):
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
         rcv_sha1 = data.split(' ')[1]
         if rcv_sha1 == file_sha1:
             return ["WPK file sent", wpk_file]
         else:
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
 
     def upgrade(self, wpk_repo=None, debug=False, version=None, force=False, show_progress=None, chunk_size=None, rl_timeout=-1, use_http=False):
@@ -2156,20 +1626,20 @@ class Agent:
         Upgrade agent using a WPK file.
         """
         if int(self.id) == 0:
-            raise OSSECAPIException(1703)
+            raise OssecAPIException(1703)
 
         self._load_info_from_DB()
 
         # Check if agent is active.
         if not self.status == 'Active':
-            raise OSSECAPIException(1720)
+            raise OssecAPIException(1720)
 
         # Check if remote upgrade is available for the selected agent version
         if WazuhVersion(self.version.split(' ')[1]) < WazuhVersion("3.0.0-alpha4"):
-            raise OSSECAPIException(1719, version)
+            raise OssecAPIException(1719, version)
 
         if self.os['platform']=="windows" and int(self.os['major']) < 6:
-            raise OSSECAPIException(1721, self.os['name'])
+            raise OssecAPIException(1721, self.os['name'])
 
         if wpk_repo == None:
             wpk_repo = common.wpk_repo_url
@@ -2205,7 +1675,7 @@ class Agent:
         else:
             s.sendto(("1:wazuh-upgrade:wazuh: Upgrade procedure on agent {0} ({1}): aborted: {2}".format(str(self.id).zfill(3), self.name, data.replace("err ",""))).encode(), common.ossec_path + "/queue/ossec/queue")
             s.close()
-            raise OSSECAPIException(1716, data.replace("err ",""))
+            raise OssecAPIException(1716, data.replace("err ",""))
 
 
     @staticmethod
@@ -2257,11 +1727,11 @@ class Agent:
         elif data.startswith('ok 2'):
             s.sendto(("1:wazuh-upgrade:wazuh: Upgrade procedure on agent {0} ({1}): failed: restored to previous version".format(str(self.id).zfill(3), self.name)).encode(), common.ossec_path + "/queue/ossec/queue")
             s.close()
-            raise OSSECAPIException(1716, "Agent restored to previous version")
+            raise OssecAPIException(1716, "Agent restored to previous version")
         else:
             s.sendto(("1:wazuh-upgrade:wazuh: Upgrade procedure on agent {0} ({1}): lost: {2}".format(str(self.id).zfill(3), self.name, data.replace("err ",""))).encode(), common.ossec_path + "/queue/ossec/queue")
             s.close()
-            raise OSSECAPIException(1716, data.replace("err ",""))
+            raise OssecAPIException(1716, data.replace("err ",""))
 
 
     @staticmethod
@@ -2284,7 +1754,7 @@ class Agent:
 
         # Check WPK file
         if not path.isfile(file_path):
-            raise OSSECAPIException(1006)
+            raise OssecAPIException(1006)
 
         wpk_file = path.basename(file_path)
         wpk_file_size = stat(file_path).st_size
@@ -2317,7 +1787,7 @@ class Agent:
             if debug:
                 print("RESPONSE: {0}".format(data))
         if data != 'ok':
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
         # Sending reset lock timeout
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -2331,14 +1801,14 @@ class Agent:
         if debug:
             print("RESPONSE: {0}".format(data))
         if data != 'ok':
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
         # Sending file to agent
         if debug:
             print("Chunk size: {0} bytes".format(chunk_size))
         file = open(file_path, "rb")
         if not file:
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
         try:
             start_time = time()
             bytes_read = file.read(chunk_size)
@@ -2375,7 +1845,7 @@ class Agent:
         if debug:
             print("RESPONSE: {0}".format(data))
         if data != 'ok':
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
         # Get file SHA1 from agent and compare
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -2389,12 +1859,12 @@ class Agent:
         if debug:
             print("RESPONSE: {0}".format(data))
         if not data.startswith('ok '):
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
         rcv_sha1 = data.split(' ')[1]
         if calc_sha1 == rcv_sha1:
             return ["WPK file sent", wpk_file]
         else:
-            raise OSSECAPIException(1715, data.replace("err ",""))
+            raise OssecAPIException(1715, data.replace("err ",""))
 
 
     def upgrade_custom(self, file_path, installer, debug=False, show_progress=None, chunk_size=None, rl_timeout=-1):
@@ -2405,7 +1875,7 @@ class Agent:
 
         # Check if agent is active.
         if not self.status == 'Active':
-            raise OSSECAPIException(1720)
+            raise OssecAPIException(1720)
 
         # Send file to agent
         sending_result = self._send_custom_wpk_file(file_path, debug, show_progress, chunk_size, rl_timeout)
@@ -2431,7 +1901,7 @@ class Agent:
         else:
             s.sendto(("1:wazuh-upgrade:wazuh: Custom installation on agent {0} ({1}): aborted: {2}".format(str(self.id).zfill(3), self.name, data.replace("err ",""))).encode(), common.ossec_path + "/queue/ossec/queue")
             s.close()
-            raise OSSECAPIException(1716, data.replace("err ",""))
+            raise OssecAPIException(1716, data.replace("err ",""))
 
 
     @staticmethod
@@ -2442,6 +1912,6 @@ class Agent:
         :return: Upgrade message.
         """
         if not file_path or not installer:
-            raise OSSECAPIException(1307)
+            raise OssecAPIException(1307)
 
         return Agent(agent_id).upgrade_custom(file_path=file_path, installer=installer)

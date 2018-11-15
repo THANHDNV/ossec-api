@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class OSSECAPIException(Exception):
+class OssecAPIException(Exception):
     """
     OSSEC-API Exception object.
     """

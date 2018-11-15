@@ -1,7 +1,6 @@
 import common
-from exception import OSSECAPIException
+from exception import OssecAPIException
 from os.path import isfile
-import sqlite3
 from pymongo import MongoClient
 
 class Connection:
@@ -9,7 +8,7 @@ class Connection:
     Represents a connection against a database
     """
 
-    def __init__(self, db_path=common.database_path, collection, busy_sleep=0.001, max_attempts=1000):
+    def __init__(self, db_path=common.database_path, collection=common.global_collection, busy_sleep=0.001, max_attempts=1000):
         """
         Constructor
         """
@@ -19,12 +18,6 @@ class Connection:
         self.max_attempts = max_attempts
 
         self.__conn = MongoClient(self.db_path)[self.collection]
-
-    def __iter__(self):
-        """
-        Iterating support
-        """
-        return self.__cur.__iter__()
 
     def begin(self):
         """
@@ -59,13 +52,13 @@ class Connection:
                 if error_text == 'database is locked':
                     n_attempts += 1
                 else:
-                    raise OSSECAPIException(2003, error_text)
+                    raise OssecAPIException(2003, error_text)
 
             except Exception as e:
-                raise OSSECAPIException (2003, str(e))
+                raise OssecAPIException (2003, str(e))
 
             if n_attempts > self.max_attempts:
-                raise OSSECAPIException(2002, error_text)
+                raise OssecAPIException(2002, error_text)
 
     def fetch(self):
         """

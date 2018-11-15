@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from exception import OSSECAPIException
+from exception import OssecAPIException
 import common
 import socket
 
@@ -32,16 +32,16 @@ class OssecQueue:
             if length_send_buffer < OssecQueue.MAX_MSG_SIZE:
                 self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, OssecQueue.MAX_MSG_SIZE)
         except:
-            raise OSSECAPIException(1010, self.path)
+            raise OssecAPIException(1010, self.path)
 
     def _send(self, msg):
         try:
             sent = self.socket.send(msg)
 
             if sent == 0:
-                raise OSSECAPIException(1011, self.path)
+                raise OssecAPIException(1011, self.path)
         except:
-            raise OSSECAPIException(1011, self.path)
+            raise OssecAPIException(1011, self.path)
 
     def close(self):
         self.socket.close()
@@ -80,7 +80,7 @@ class OssecQueue:
         if msg_type == OssecQueue.AR_TYPE:
 
             if not agent_id:
-                raise OSSECAPIException(1653)
+                raise OssecAPIException(1653)
 
             if agent_id != "000":
                 # Example restart 'msg': restart-ossec0 - null (from_the_server) (no_rule_id)
@@ -92,7 +92,7 @@ class OssecQueue:
             try:
                 self._send(socket_msg.encode())
             except:
-                raise OSSECAPIException(1652)
+                raise OssecAPIException(1652)
 
             return "Command sent."
 
@@ -103,7 +103,7 @@ class OssecQueue:
             elif msg == OssecQueue.RESTART_AGENTS:
                 socket_msg = "{0} {1}{2}{3} {4} {5} - {6} (from_the_server) (no_rule_id)".format("(msg_to_agent) []", str_all_agents, NONE_C, str_agent, str_agent_id, OssecQueue.RESTART_AGENTS, "null")
             else:
-                raise OSSECAPIException(1012, msg)
+                raise OssecAPIException(1012, msg)
 
             # Send message
             try:
@@ -111,11 +111,11 @@ class OssecQueue:
             except:
                 if msg == OssecQueue.HC_SK_RESTART:
                     if agent_id:
-                        raise OSSECAPIException(1601, "on agent")
+                        raise OssecAPIException(1601, "on agent")
                     else:
-                        raise OSSECAPIException(1601, "on all agents")
+                        raise OssecAPIException(1601, "on all agents")
                 elif msg == OssecQueue.RESTART_AGENTS:
-                    raise OSSECAPIException(1702)
+                    raise OssecAPIException(1702)
 
             # Return message
             if msg == OssecQueue.HC_SK_RESTART:

@@ -63,18 +63,14 @@ def get_timeframe_in_seconds(timeframe):
     return seconds
 
 
-class Agent:
+class Agent(object):
     """
     OSSEC Agent object.
     """
 
-    fields = {'id': 'id', 'name': 'name', 'ip': 'ip', 'status': 'status',
-              'os.name': 'os_name', 'os.version': 'os_version', 'os.platform': 'os_platform',
-              'version': 'version', 'manager_host': 'manager_host', 'dateAdd': 'date_add',
-              'mergedSum': 'merged_sum', 'configSum': 'config_sum',
-              'os.codename': 'os_codename', 'os.major': 'os_major', 'os.minor': 'os_minor',
-              'os.uname': 'os_uname', 'os.arch': 'os_arch', 'os.build':'os_build',
-              'node_name': 'node_name', 'lastKeepAlive': 'last_keepalive', 'key':'key'}
+    fields = {'id': 'id', 'name': 'name', 'ip': 'ip', 'status': 'status', 'dateAdd': 'dateAdd',
+              'version': 'version', 'configSum': 'config_sum', # 'mergedSum': 'merged_sum',
+              'os': 'os', 'os.arch': 'os_arch', 'lastKeepAlive': 'lastAlive', 'key':'key'}
 
 
     def __init__(self, id=None, name=None, ip=None, key=None, force=-1):
@@ -90,16 +86,14 @@ class Agent:
         self.name          = name
         self.ip            = ip
         self.internal_key  = key
+        self.dateAdd       = None
         self.os            = {}
         self.version       = None
-        self.dateAdd       = None
         self.lastKeepAlive = None
         self.status        = None
         self.key           = None
         self.configSum     = None
-        self.mergedSum     = None
-        self.group         = None
-        self.manager_host  = None
+        # self.mergedSum     = None
 
         # if the method has only been called with an ID parameter, no new agent should be added.
         # Otherwise, a new agent must be added
@@ -113,6 +107,9 @@ class Agent:
         dictionary = {'id': self.id, 'name': self.name, 'ip': self.ip, 'internal_key': self.internal_key, 'os': self.os, 'version': self.version, 'dateAdd': self.dateAdd, 'lastKeepAlive': self.lastKeepAlive, 'status': self.status, 'key': self.key, 'configSum': self.configSum, 'mergedSum': self.mergedSum, 'group': self.group, 'manager_host': self.manager_host }
 
         return dictionary
+    
+    def __getattribute__(self, name):
+        return object.__getattribute__(self,name)
 
     @staticmethod
     def calculate_status(last_keep_alive, pending, today=datetime.today()):
@@ -136,17 +133,17 @@ class Agent:
         """
 
         db_url = common.database_path
-        collection = common.global_collection
+        collection = common.global_db
 
         conn = Connection(db_url, collection)
+
+        if conn.getdb() == None:
+            raise OssecAPIException(1600)
+
         pending = True
 
-        # # Query
-        # query = "SELECT {0} FROM agent WHERE id = :id"
-        # request = {'id': self.id}
-
         valid_select_fields = set(self.fields.values())
-
+        select_fields = {}
         # Select
         if select:
             select['fields'] = list(map(lambda x: self.fields[x] if x in self.fields else x, select['fields']))
@@ -157,92 +154,35 @@ class Agent:
                         format(self.fields.keys(), incorrect_fields))
 
             # to compute the status field, lastKeepAlive and version are necessary
-            select_fields = {'id'} | select_fields_set if 'status' not in select_fields_set \
-                                                       else select_fields_set | {'id', 'last_keepalive', 'version'}
+            select_fields_set = {'id'} | select_fields_set if 'status' not in select_fields_set \
+                                                       else select_fields_set | {'id', 'lastAlive', 'version'}
+            for x in select_fields_set:
+                select_fields[x] = 1
         else:
-            select_fields = valid_select_fields
+            for x in valid_select_fields:
+                select_fields[x] = 1
 
-        select_fields = list(select_fields)
-        try:
-            select_fields[select_fields.index("group")] = "`group`"
-        except ValueError as e:
-            pass
+        db_select_fields = select_fields.copy()
+        db_select_fields.pop('status', None)
+        db_data = conn.getdb()['agent'].find_one({'id': self.id}, db_select_fields)
 
-        conn.execute(query.format(','.join(select_fields)), request)
-
-        # if select:
-            
-        # else:
-        #     select_fields = valid_select_fields
-            
-        db_data = conn.fetch()
         if db_data is None:
             raise OssecAPIException(1701)
 
         no_result = True
-        for field,value in zip(select_fields, db_data):
-            no_result = False
 
-            if field == 'id' and value != None:
-                self.id = str(value).zfill(3)
-            if field == 'name' and value != None:
-                self.name = value
-            if field == 'ip' and value != None:
-                self.ip = value
-            if field == 'key' and value != None:
-                self.internal_key = value
-            if field == 'version' and value != None:
-                self.version = value
-                pending = False if self.version != "" else True
-            if field == 'date_add' and value != None:
-                self.dateAdd = value
-            if field == 'last_keepalive':
-                if value != None:
-                    self.lastKeepAlive = value
-                else:
-                    self.lastKeepAlive = 0
-            if field == 'config_sum' and value != None:
-                self.configSum = value
-            if field == 'merged_sum' and value != None:
-                self.mergedSum = value
-            if field == '`group`' and value != None:
-                self.group = value
-            if field == 'manager_host' and value != None:
-                self.manager_host = value
-            if field == 'os_name' and value != None:
-                self.os['name'] = value
-            if field == 'os_version' and value != None:
-                self.os['version'] = value
-            if field == 'os_major' and value != None:
-                self.os['major'] = value
-            if field == 'os_minor' and value != None:
-                self.os['minor'] = value
-            if field == 'os_codename' and value != None:
-                self.os['codename'] = value
-            if field == 'os_build' and value != None:
-                self.os['build'] = value
-            if field == 'os_platform' and value != None:
-                self.os['platform'] = value
-            if field == 'os_uname' and value != None:
-                self.os['uname'] = value
-                if "x86_64" in self.os['uname']:
-                    self.os['arch'] = "x86_64"
-                elif "i386" in self.os['uname']:
-                    self.os['arch'] = "i386"
-                elif "i686" in self.os['uname']:
-                    self.os['arch'] = "i686"
-                elif "sparc" in self.os['uname']:
-                    self.os['arch'] = "sparc"
-                elif "amd64" in self.os['uname']:
-                    self.os['arch'] = "amd64"
-                elif "ia64" in self.os['uname']:
-                    self.os['arch'] = "ia64"
-                elif "AIX" in self.os['uname']:
-                    self.os['arch'] = "AIX"
-                elif "armv6" in self.os['uname']:
-                    self.os['arch'] = "armv6"
-                elif "armv7" in self.os['uname']:
-                    self.os['arch'] = "armv7"
+        if db_data != None:
+            no_result = False
+            self.id =  str(db_data.get("id","")).zfill(3)
+            self.name = str(db_data.get("name",""))
+            self.ip = str(db_data.get("ip",""))
+            self.internal_key = str(db_data.get("key",""))
+            self.dateAdd = db_data.get("dateAdd").__str__() if db_data.get("dateAdd") != None else None
+            self.version = str(db_data.get("version",""))
+            self.os['name'] = str(db_data.get("os",""))
+            self.os['os_arch'] = str(db_data.get("os_arch",""))
+            self.lastAlive = db_data.get("lastAlive").__str__() if db_data.get("lastAlive") != None else None
+            self.configSum = str(db_data.get("config_sum","")) if str(db_data.get("config_sum","")) != "" else None
 
         if self.id != "000":
             self.status = Agent.calculate_status(self.lastKeepAlive, pending)
@@ -320,22 +260,16 @@ class Agent:
                 info['os'] = os_no_empty
         if self.version and 'version' in select_fields:
             info['version'] = self.version
-        if self.dateAdd:
-            info['dateAdd'] = self.dateAdd
         if self.lastKeepAlive and 'last_keepalive' in select_fields:
             info['lastKeepAlive'] = self.lastKeepAlive
         if self.status and 'status' in select_fields:
             info['status'] = self.status
         if self.configSum:
             info['configSum'] = self.configSum
-        if self.mergedSum:
-            info['mergedSum'] = self.mergedSum
+        # if self.mergedSum:
+        #     info['mergedSum'] = self.mergedSum
         #if self.key:
         #    info['key'] = self.key
-        if self.group:
-            info['group'] = self.group
-        if self.manager_host:
-            info['manager_host'] = self.manager_host
 
         return info
 
@@ -620,16 +554,20 @@ class Agent:
         force = force if type(force) == int else int(force)
 
         # Check manager name
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OssecAPIException(1600)
+        # not needed yet since haven't add manager to database
+        # db_url = common.database_path
+        # collection = common.global_db
 
-        conn = Connection(db_global[0])
-        conn.execute("SELECT name FROM agent WHERE (id = 0)")
-        manager_name = str(conn.fetch()[0])
+        # conn = Connection(db_url, collection)
 
-        if name == manager_name:
-            raise OssecAPIException(1705, name)
+        # if conn.getdb() == None:
+        #     raise OssecAPIException(1600)
+
+        # manager = conn.getdb()['agent'].find_one({"id": "000"}, {"name": 1})
+        # manager_name = str(manager['name'])
+
+        # if name == manager_name:
+        #     raise OssecAPIException(1705, name)
 
         # Check if ip, name or id exist in client.keys
         last_id = 0
@@ -729,80 +667,55 @@ class Agent:
         self.internal_key = agent_key
         self.key = self.compute_key()
 
-    def get_agent_attr(self, attr):
-        """
-        Returns a string with an agent's os name
-        """
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OssecAPIException(1600)
-
-        conn = Connection(db_global[0])
-        query = "SELECT :attr FROM agent WHERE id = :id"
-        request = {'attr':attr, 'id': self.id}
-        conn.execute(query, request)
-        query_value = str(conn.fetch()[0])
-
-        return query_value
-
-
     @staticmethod
-    def get_agents_dict(conn, select_fields, user_select_fields):
-        db_api_name = {v:k for k,v in Agent.fields.items()}
-        fields_to_nest, non_nested = get_fields_to_nest(db_api_name.values(), ['os'], '.')
-
-        agent_items = [{db_api_name[field]:value for field,value in zip(select_fields, db_tuple) if value is not None} for db_tuple in conn]
-
-        if 'status' in user_select_fields:
-            today = datetime.today()
-            agent_items = [dict(item, id=str(item['id']).zfill(3), status=Agent.calculate_status(item.get('lastKeepAlive'), item.get('version') is None, today)) for item in agent_items]
-        else:
-            agent_items = [dict(item, id=str(item['id']).zfill(3)) for item in agent_items]
-
-        agent_items = [plain_dict_to_nested_dict(d, fields_to_nest, non_nested, ['os'], '.') for d in agent_items]
-
-        return agent_items
-
-
-    @staticmethod
-    def filter_agents_by_status(status, request, query):
+    def filter_agents_by_status(status, request):
         result = datetime.now() - timedelta(seconds=common.limit_seconds)
-        request['time_active'] = result.strftime('%Y-%m-%d %H:%M:%S')
+        status_filter = {"$or":[]}
         list_status = status.split(',')
-        query += ' AND ('
 
         for status in list_status:
             status = status.lower()
+            status_con = {}
             if status == 'active':
-                query += '((last_keepalive >= :time_active AND version IS NOT NULL) or id = 0) OR '
+                status_con["lastAlive"] = {"$gte": result}
             elif status == 'disconnected':
-                query += 'last_keepalive < :time_active OR '
+                status_con["lastAlive"] = {"$lt": result}
             elif status == "never connected" or status == "neverconnected":
-                query += 'last_keepalive IS NULL AND id != 0 OR '
+                status_con["lastAlive"] = None
             elif status == 'pending':
-                query += 'last_keepalive IS NOT NULL AND version IS NULL OR '
+                status_con["lastAlive"] = {"$ne": None}
+                status_con["version"] = None
             else:
                 raise OssecAPIException(1729, status)
-        query = query[:-3] + ")"  # Remove the last OR from query
-
-        return query
+            status_filter["$or"].append(status_con)
+        request["$and"].append(status_filter)
 
 
     @staticmethod
-    def filter_agents_by_timeframe(older_than, request, query):
-        request['older_than'] = get_timeframe_in_seconds(older_than)
-        query += " AND ("
+    def filter_agents_by_timeframe(older_than, request):
+        time_con = {"$or": []}
+        older_second = get_timeframe_in_seconds(older_than)
+        time_old = datetime.now() - timedelta(seconds=older_second)
         # If the status is not neverconnected, compare older_than with the last keepalive:
-        query += "(last_keepalive IS NOT NULL AND CAST(strftime('%s', last_keepalive) AS INTEGER) < CAST(strftime('%s', 'now', 'localtime') AS INTEGER) - :older_than) "
-        query += "OR "
+        # query += "(last_keepalive IS NOT NULL AND CAST(strftime('%s', last_keepalive) AS INTEGER) < CAST(strftime('%s', 'now', 'localtime') AS INTEGER) - :older_than) "
+        first_con = {
+            "lastAlive": {
+                "$ne": None
+            },
+            "lastAlive": {"$lte": time_old}
+        }
+        time_con["$or"].append(first_con)
         # If the status is neverconnected, compare older_than with the date add:
-        query += "(last_keepalive IS NULL AND id != 0 AND CAST(strftime('%s', date_Add) AS INTEGER) < CAST(strftime('%s', 'now', 'localtime') AS INTEGER) - :older_than) "
-        query += ")"
-        return query
-
+        # query += "(last_keepalive IS NULL AND id != 0 AND CAST(strftime('%s', date_Add) AS INTEGER) < CAST(strftime('%s', 'now', 'localtime') AS INTEGER) - :older_than) "
+        second_con = {
+            "lastAlive": None,
+            "dateAdd": {"$lte": time_old}
+        }
+        time_con["$or"].append(second_con)
+        request["$and"].append(time_con)
 
     @staticmethod
-    def filter_query(filters, request, query):
+    def filter_query(filters, request):
         """
         Add filters to a database query
         :param filters: Dictionary which key is the name of the field and the value is the value to filter.
@@ -816,25 +729,23 @@ class Agent:
 
             if filter_name == "status":
                 # doesn't do += because query is a parameter of the function
-                query = Agent.filter_agents_by_status(db_filter, request, query)
+                Agent.filter_agents_by_status(db_filter, request)
             elif filter_name == "older_than":
                 # doesn't do += because query is a parameter of the function
-                query = Agent.filter_agents_by_timeframe(db_filter, request, query)
+                Agent.filter_agents_by_timeframe(db_filter, request)
             else:
-                main_filter_name = filter_name if filter_name != "group" else "`group`"
+                filter_con = {}
+                filter_con[filter_name] = {}
                 if isinstance(db_filter, list):
-                    filter_list = [name.lower() if filter_name != "version"
-                                                else re.sub( r'([a-zA-Z])([v])', r'\1 \2', name)
+                    filter_con[filter_name] = {
+                    }
+                    filter_con[filter_name]["$in"] = [re.compile(name.lower(), re.IGNORECASE) if filter_name != "version"
+                                                else re.compile(re.sub( r'([a-zA-Z])([v])', r'\1 \2', name), re.IGNORECASE)
                                   for name in db_filter]
-                    query += ' AND {} COLLATE NOCASE IN ({})'.format(main_filter_name,
-                        ','.join([":{}{}".format(filter_name, x) for x in range(len(filter_list))]))
-                    key_list = [":{}{}".format(filter_name, x) for x in range(len(filter_list))]
-                    request.update({x[1:]: y for x, y in zip(key_list, filter_list)})
                 else: # str
-                    request[filter_name] = db_filter if filter_name != "version" else re.sub( r'([a-zA-Z])([v])', r'\1 \2', db_filter)
-                    query += ' AND {} = :{}'.format(main_filter_name, filter_name)
-
-        return query
+                    filter_con[filter_name] = re.compile(name.lower(), re.IGNORECASE) if filter_name != "version" \
+                                                else re.compile(re.sub( r'([a-zA-Z])([v])', r'\1 \2', name), re.IGNORECASE)
+                request["$and"].append(filter_con)
 
 
     @staticmethod
@@ -850,58 +761,68 @@ class Agent:
         :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
         """
 
-        db_global = glob(common.database_path_global)
-        if not db_global:
+        db_url = common.database_path
+        collection = common.global_db
+
+        conn = Connection(db_url, collection)
+
+        if conn.getdb() == None:
             raise OssecAPIException(1600)
-
-        conn = Connection(db_global[0])
-
-        # Query
-        query = "SELECT {0} FROM agent"
 
         valid_select_fields = set(Agent.fields.values()) | {'status'}
         # at least, we should retrieve those fields since other fields depending on those
-        search_fields = {"id", "name", "ip", "os_name", "os_version", "os_platform", "manager_host", "version",
-                         "`group`", "node_name"}
-        request = {}
+        search_fields = {"id", "name", "ip", "os", "dateAdd", "version"}
+        request = {"$and": []}
+        select_fields = {}
+        # Select
         if select:
             select['fields'] = list(map(lambda x: Agent.fields[x] if x in Agent.fields else x, select['fields']))
-
-            if not set(select['fields']).issubset(valid_select_fields):
-                incorrect_fields = list(map(lambda x: str(x), set(select['fields']) - valid_select_fields))
-                raise OssecAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
-                                    format(Agent.fields.keys(), incorrect_fields))
-
             select_fields_set = set(select['fields'])
-            min_select_fields = {'id'} | select_fields_set if 'status' not in select_fields_set\
-                                        else select_fields_set | {'id', 'last_keepalive', 'version'}
+            if not select_fields_set.issubset(valid_select_fields):
+                incorrect_fields = list(map(lambda x: str(x), select_fields_set - valid_select_fields))
+                raise OssecAPIException(1724, "Allowed select fields: {0}. Fields {1}".\
+                        format(Agent.fields.keys(), incorrect_fields))
+
+            # to compute the status field, lastKeepAlive and version are necessary
+            select_fields_set = {'id'} | select_fields_set if 'status' not in select_fields_set \
+                                                       else select_fields_set | {'id', 'lastAlive', 'version'}
+            for x in select_fields_set:
+                select_fields[x] = 1
         else:
-            min_select_fields = valid_select_fields
+            for x in valid_select_fields:
+                select_fields[x] = 1
 
         # save the fields that the user has selected
-        user_select_fields = (set(select['fields']) if select else min_select_fields.copy()) | {'id'}
+        user_select_fields = select_fields.copy()
+        select_fields.pop('status', None)
 
         # add special filters to the database query
-        query = Agent.filter_query(filters, request, query)
+        Agent.filter_query(filters, request)
 
         # Search
         if search:
-            search['value'] = re.sub( r'([Wazuh])([v])', r'\1 \2', search['value'] )
-            query += " AND NOT" if bool(search['negation']) else ' AND'
-            query += " (" + " id LIKE :search_id"
-            query += " OR " + " OR ".join(x + ' LIKE :search' for x in (search_fields - {"id"})) + " )"
-            request['search'] = '%{0}%'.format(search['value'])
-            request['search_id'] = '%{0}%'.format(int(search['value']) if search['value'].isdigit()
-                                                                    else search['value'])
+            search['value'] = re.sub( r'([OSSEC HIDS])([v])', r'\1 \2', search['value'] )
+            search_con = {
+                "$or": []
+            }
+            regex = re.compile("{0}".format(int(search['value']) if search['value'].isdigit()
+                                                                    else search['value']))
+            for x in search_fields:
+                search_con["$or"].append({
+                    x: regex
+                })
+            if bool(search['negation']):
+                request["$and"].append({
+                    "$not": search_con
+                })
+            else :
+                request["$and"].append(search_con)
 
-        if "FROM agent AND" in query:
-            query = query.replace("FROM agent AND", "FROM agent WHERE")
-
+        db_data = conn.getdb()['agent'].find(request, select_fields)
         # Count
-        conn.execute(query.format('COUNT(*)'), request)
-        data = {'totalItems': conn.fetch()[0]}
-
+        data = {'totalItems': db_data.count()}
         # Sorting
+        sort_con = []
         if sort:
             if sort['fields']:
                 allowed_sort_fields = set(Agent.fields.keys())
@@ -909,39 +830,40 @@ class Agent:
                 if not set(sort['fields']).issubset(allowed_sort_fields):
                     raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
 
-                order_str_fields = []
                 for i in sort['fields']:
                     # Order by status ASC is the same that order by last_keepalive DESC.
                     if i == 'status':
-                        str_order = "desc" if sort['order'] == 'asc' else "asc"
-                        order_str_field = '{0} {1}'.format(Agent.fields['lastKeepAlive'], str_order)
-                    # Order by version is order by major and minor
-                    elif i == 'os.version':
-                        order_str_field = "CAST(os_major AS INTEGER) {0}, CAST(os_minor AS INTEGER) {0}".format(sort['order'])
+                        str_order = -1 if sort['order'] == 'asc' else 1
+                        sort_con.append((Agent.fields['lastKeepAlive'], str_order))
                     else:
-                        order_str_field = '{0} {1}'.format(Agent.fields[i], sort['order'])
-
-                    order_str_fields.append(order_str_field)
-
-                query += ' ORDER BY ' + ','.join(order_str_fields)
+                        str_order = 1 if sort['order'] == 'asc' else -1
+                        sort_con.append((Agent.fields[i], str_order))
             else:
-                query += ' ORDER BY id {0}'.format(sort['order'])
+                sort_con.append((Agent.fields["id"], 1 if sort['order'] == 'asc' else -1))
         else:
-            query += ' ORDER BY id ASC'
+            sort_con.append((Agent.fields["id"], 1))
 
 
         if limit:
             if limit > common.maximum_database_limit:
                 raise OssecAPIException(1405, str(limit))
-            query += ' LIMIT :offset,:limit'
-            request['offset'] = offset
-            request['limit'] = limit
         elif limit == 0:
             raise OssecAPIException(1406)
 
-        conn.execute(query.format(','.join(min_select_fields)), request)
+        db_data = db_data.sort(sort_con).skip(offset).limit(limit)
 
-        data['items'] = Agent.get_agents_dict(conn, min_select_fields, user_select_fields)
+        if 'status' in user_select_fields:
+            for data in db_data:
+                data['status'] = Agent.calculate_status(data.get("lastAlive").__str__(), True)
+
+        data['items'] = []
+
+        for agent in db_data:
+            item = {}
+            for field in user_select_fields.keys():
+                item[field] = agent.get[field]
+
+            data['items'].append(item)
 
         return data
 
@@ -953,104 +875,46 @@ class Agent:
         :return: Dictionary with keys: total, Active, Disconnected, Never connected
         """
 
-        db_global = glob(common.database_path_global)
-        if not db_global:
+        db_url = common.database_path
+        collection = common.global_db
+
+        conn = Connection(db_url, collection)
+
+        if conn.getdb() == None:
             raise OssecAPIException(1600)
-
-        conn = Connection(db_global[0])
-
-        # Query
-        query_all = "SELECT COUNT(*) FROM agent"
-
-        query = "SELECT COUNT(*) FROM agent WHERE {0}"
-        request = {}
-        query_active = query.format('(last_keepalive >= :time_active or id = 0)')
-        query_disconnected = query.format('last_keepalive < :time_active')
-        query_never = query.format('last_keepalive IS NULL AND id != 0')
 
         result = datetime.now() - timedelta(seconds=common.limit_seconds)
-        request['time_active'] = result.strftime('%Y-%m-%d %H:%M:%S')
+        # request['time_active'] = result.strftime('%Y-%m-%d %H:%M:%S')
 
-        conn.execute(query_all)
-        total = conn.fetch()[0]
+        total = conn.getdb()['agent'].find().count()
+        active = conn.getdb()['agent'].find({
+            "$or": [
+                {
+                    "keepAlive": {
+                        "$gte": result
+                    }
+                },
+                {
+                    "id": "000"
+                }
+            ]
+        }).count()
 
-        conn.execute(query_active, request)
-        active = conn.fetch()[0]
+        disconnected = conn.getdb()['agent'].find({
+            "keepAlive": {
+                "$lt": result
+            }
+        }).count()
 
-        conn.execute(query_disconnected, request)
-        disconnected = conn.fetch()[0]
-
-        conn.execute(query_never, request)
-        never = conn.fetch()[0]
+        never = conn.getdb()['agent'].find({
+            "keepAlive": None,
+            "id": {
+                "$exists": True,
+                "$ne": "000"
+            }
+        }).count()
 
         return {'Total': total, 'Active': active, 'Disconnected': disconnected, 'Never connected': never}
-
-    @staticmethod
-    def get_os_summary(offset=0, limit=common.database_limit, sort=None, search=None):
-        """
-        Gets a list of available OS.
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-        # Connect DB
-        db_global = glob(common.database_path_global)
-        if not db_global:
-            raise OssecAPIException(1600)
-
-        conn = Connection(db_global[0])
-
-        # Init query
-        query = "SELECT DISTINCT {0} FROM agent WHERE os_platform IS NOT null AND os_platform != ''"
-        fields = {'os.platform': 'os_platform'}  # field: db_column
-        select = ["os_platform"]
-        request = {}
-
-        # Search
-        if search:
-            query += " AND NOT" if bool(search['negation']) else ' AND'
-            query += " ( os_platform LIKE :search )"
-            request['search'] = '%{0}%'.format(search['value'])
-
-        # Count
-        conn.execute(query.format('COUNT(DISTINCT os_platform)'), request)
-        data = {'totalItems': conn.fetch()[0]}
-
-        # Sorting
-        if sort:
-            if sort['fields']:
-                allowed_sort_fields = fields.keys()
-                # Check if every element in sort['fields'] is in allowed_sort_fields.
-                if not set(sort['fields']).issubset(allowed_sort_fields):
-                    raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
-
-                order_str_fields = ['`{0}` {1}'.format(fields[i], sort['order']) for i in sort['fields']]
-                query += ' ORDER BY ' + ','.join(order_str_fields)
-            else:
-                query += ' ORDER BY os_platform {0}'.format(sort['order'])
-        else:
-            query += ' ORDER BY os_platform ASC'
-
-        # OFFSET - LIMIT
-        if limit:
-            if limit > common.maximum_database_limit:
-                raise OssecAPIException(1405, str(limit))
-            query += ' LIMIT :offset,:limit'
-            request['offset'] = offset
-            request['limit'] = limit
-        elif limit == 0:
-            raise OssecAPIException(1406)
-
-        conn.execute(query.format(','.join(select)), request)
-
-        data['items'] = []
-        for tuple in conn:
-            if tuple[0] != None:
-                data['items'].append(tuple[0])
-
-        return data
 
     @staticmethod
     def restart_agents(agent_id=None, restart_all=False):
@@ -1104,18 +968,20 @@ class Agent:
         :param agent_name: Agent name.
         :return: The agent.
         """
-        db_global = glob(common.database_path_global)
-        if not db_global:
+        db_url = common.database_path
+        collection = common.global_db
+
+        conn = Connection(db_url, collection)
+
+        if conn.getdb() == None:
             raise OssecAPIException(1600)
 
-        conn = Connection(db_global[0])
-        conn.execute("SELECT id FROM agent WHERE name = :name", {'name': agent_name})
-        try:
-            agent_id = str(conn.fetch()[0]).zfill(3)
-        except TypeError as e:
-            raise OssecAPIException(1701, agent_name)
+        agent = conn.getdb()['agent'].find_one({"name": agent_name}, {"id": 1})
 
-        return Agent(agent_id).get_basic_information(select)
+        if agent:
+            return Agent(agent.get("id")).get_basic_information(select)
+        else:
+            raise OssecAPIException(1701, agent_name)        
 
     @staticmethod
     def get_agent(agent_id, select=None):
@@ -1282,12 +1148,14 @@ class Agent:
         """
 
         # Connect DB
-        db_global = glob(common.database_path_global)
-        if not db_global:
+        db_url = common.database_path
+        collection = common.global_db
+
+        conn = Connection(db_url, collection)
+
+        if conn.getdb() == None:
             raise OssecAPIException(1600)
-
-        conn = Connection(db_global[0])
-
+        
         # Get manager version
         manager = Agent(id=0)
         manager._load_info_from_DB()
@@ -1299,11 +1167,25 @@ class Agent:
         select = ['id','name','version']
         request = {'manager_ver': manager_ver}
 
+        select_fields = {}
+        for x in select:
+            select_fields[x] = 1
+        
         # Count
-        conn.execute(query.format('COUNT(`id`)'), request)
-        data = {'totalItems': conn.fetch()[0]}
+        db_data = conn.getdb()['agent'].find({
+            "$and": [
+                {
+                    "version": { "$ne": manager_ver }
+                },
+                {
+                    "id": { "$ne": "000" }
+                }
+            ]
+        }, select_fields)
+        data = {'totalItems': db_data.count()}
 
         # Sorting
+        sort_con = []
         if sort:
             if sort['fields']:
                 allowed_sort_fields = fields.keys()
@@ -1311,39 +1193,32 @@ class Agent:
                 if not set(sort['fields']).issubset(allowed_sort_fields):
                     raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))
 
-                order_str_fields = ['{0} {1}'.format(fields[i], sort['order']) for i in sort['fields']]
-                query += ' ORDER BY ' + ','.join(order_str_fields)
+                for i in sort['fields']:
+                    str_order = 1 if sort['order'] == 'asc' else -1
+                    sort_con.append((Agent.fields[i], str_order))
             else:
-                query += ' ORDER BY id {0}'.format(sort['order'])
+                sort_con.append((Agent.fields["id"], 1 if sort['order'] == 'asc' else -1))
         else:
-            query += ' ORDER BY id ASC'
+            sort_con.append((Agent.fields["id"], 1))
 
         # OFFSET - LIMIT
         if limit:
             if limit > common.maximum_database_limit:
                 raise OssecAPIException(1405, str(limit))
-            query += ' LIMIT :offset,:limit'
-            request['offset'] = offset
-            request['limit'] = limit
         elif limit == 0:
             raise OssecAPIException(1406)
 
         # Data query
-        conn.execute(query.format(','.join(select)), request)
+        db_data = db_data.sort(sort_con).skip(offset).limit(limit)
 
         data['items'] = []
 
-        for tuple in conn:
-            data_tuple = {}
+        for agent in db_data:
+            item = {}
+            for field in select_fields.keys():
+                item[field] = agent.get[field]
 
-            if tuple[0] != None:
-                data_tuple['id'] = str(tuple[0]).zfill(3)
-            if tuple[1] != None:
-                data_tuple['name'] = tuple[1]
-            if tuple[2] != None:
-                data_tuple['version'] = tuple[2]
-
-            data['items'].append(data_tuple)
+            data['items'].append(item)
 
         return data
 

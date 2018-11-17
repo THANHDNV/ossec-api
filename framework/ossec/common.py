@@ -48,8 +48,8 @@ def set_paths_based_on_ossec(o_path='/var/ossec'):
     global database_path
     database_path = "mongodb://127.0.0.1:27017"
 
-    global global_collection
-    global_collection = 'global'
+    global global_db
+    global_db = 'global'
 
     global wdb_socket_path
     wdb_socket_path = '{0}/queue/db/wdb'.format(ossec_path)

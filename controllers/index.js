@@ -3,7 +3,7 @@ filter = require('../helpers/filters');
 execute = require('../helpers/execute');
 apicache  = require('apicache');
 cache     = apicache.middleware;
-ossec_control = api_path + "/models/ossec-api.py";
+ossec_control = api_path + "/models/ossec-api-test.py";
 
 var router = require('express').Router();
 var validator = require('../helpers/input_validation');

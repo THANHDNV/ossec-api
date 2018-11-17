@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from utils import execute, cut_array, sort_array, search_array, chmod_r, chown_r, WazuhVersion, plain_dict_to_nested_dict, get_fields_to_nest
+from utils import execute, cut_array, sort_array, search_array, chmod_r, chown_r, OssecVersion, plain_dict_to_nested_dict, get_fields_to_nest
 from exception import OssecAPIException
 from ossec_queue import OssecQueue
 from ossec_socket import OssecSocket
@@ -51,7 +51,7 @@ def get_timeframe_in_seconds(timeframe):
     :return: Time in seconds.
     """
     if not timeframe.isdigit():
-        regex = re.compile('(\d*)(\w)$')
+        regex = re.compile(r'(\d*)(\w)$')
         g = regex.findall(timeframe)
         number = int(g[0][0])
         unit = g[0][1]
@@ -700,9 +700,9 @@ class Agent(object):
         # query += "(last_keepalive IS NOT NULL AND CAST(strftime('%s', last_keepalive) AS INTEGER) < CAST(strftime('%s', 'now', 'localtime') AS INTEGER) - :older_than) "
         first_con = {
             "lastAlive": {
-                "$ne": None
-            },
-            "lastAlive": {"$lte": time_old}
+                "$ne": None,
+                "$lte": time_old
+            }
         }
         time_con["$or"].append(first_con)
         # If the status is neverconnected, compare older_than with the date add:
@@ -1307,10 +1307,10 @@ class Agent(object):
             print("Agent version: {0}".format(agent_ver.split(" ")[1]))
             print("Agent new version: {0}".format(agent_new_ver))
 
-        if WazuhVersion(manager_ver.split(" ")[1]) < WazuhVersion(agent_new_ver):
+        if OssecVersion(manager_ver.split(" ")[2]) < OssecVersion(agent_new_ver):
             raise OssecAPIException(1717, "Manager: {0} / Agent: {1} -> {2}".format(manager_ver.split(" ")[1], agent_ver.split(" ")[1], agent_new_ver))
 
-        if (WazuhVersion(agent_ver.split(" ")[1]) >= WazuhVersion(agent_new_ver) and not force):
+        if (OssecVersion(agent_ver.split(" ")[2]) >= OssecVersion(agent_new_ver) and not force):
             raise OssecAPIException(1716, "Agent ver: {0} / Agent new ver: {1}".format(agent_ver.split(" ")[1], agent_new_ver))
 
         protocol = self._get_protocol(wpk_repo, use_http)
@@ -1510,7 +1510,7 @@ class Agent(object):
             raise OssecAPIException(1720)
 
         # Check if remote upgrade is available for the selected agent version
-        if WazuhVersion(self.version.split(' ')[1]) < WazuhVersion("3.0.0-alpha4"):
+        if OssecVersion(self.version.split(' ')[2]) < OssecVersion("3.0.0-alpha4"):
             raise OssecAPIException(1719, version)
 
         if self.os['platform']=="windows" and int(self.os['major']) < 6:

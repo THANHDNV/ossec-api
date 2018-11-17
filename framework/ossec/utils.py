@@ -458,11 +458,11 @@ def load_ossec_xml(xml_path):
     return fromstring('<root_tag>' + data + '</root_tag>')
 
 
-class WazuhVersion:
+class OssecVersion:
 
     def __init__(self, version):
 
-        pattern = "v?(\d)\.(\d)\.(\d)\-?(alpha|beta|rc)?(\d*)"
+        pattern = r"v?(\d)\.(\d)\.(\d)\-?(alpha|beta|rc)?(\d*)"
         m = re.match(pattern, version)
 
         if m:

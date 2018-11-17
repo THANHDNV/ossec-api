@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
+# Created by Wazuh, Inc. <info@wazuh.com>.
+# This program is a free software; you can redistribute it and/or modify it under the terms of GPLv2
+
 from os import listdir, path as os_path
 import re
 from exception import OssecAPIException
-from ossec.agent import Agent
+from agent import Agent
 import common
 from utils import cut_array, load_ossec_xml
 # Python 2/3 compability
@@ -237,17 +240,18 @@ def _agentconf2json(xml_conf):
 def _rcl2json(filepath):
     """
     Returns the RCL file as dictionary.
+
     :return: rcl file (system_audit, windows_audit) as dictionary.
     """
 
     data = {'vars': {}, 'controls': []}
     # [Application name] [any or all] [reference]
     # type:<entry name>;
-    regex_comment = re.compile("^\s*#")
-    regex_title = re.compile("^\s*\[(.*)\]\s*\[(.*)\]\s*\[(.*)\]\s*")
-    regex_name_groups = re.compile("(\{\w+:\s+\S+\s*\S*\})")
-    regex_check = re.compile("^\s*(\w:.+)")
-    regex_var = re.compile("^\s*\$(\w+)=(.+)")
+    regex_comment = re.compile(r"^\s*#")
+    regex_title = re.compile(r"^\s*\[(.*)\]\s*\[(.*)\]\s*\[(.*)\]\s*")
+    regex_name_groups = re.compile(r"(\{\w+:\s+\S+\s*\S*\})")
+    regex_check = re.compile(r"^\s*(\w:.+)")
+    regex_var = re.compile(r"^\s*\$(\w+)=(.+)")
 
     try:
         item = {}
@@ -325,14 +329,15 @@ def _rcl2json(filepath):
 def _rootkit_files2json(filepath):
     """
     Returns the rootkit file as dictionary.
+
     :return: rootkit file as dictionary.
     """
 
     data = []
 
     # file_name ! Name ::Link to it
-    regex_comment = re.compile("^\s*#")
-    regex_check = re.compile("^\s*(.+)\s+!\s*(.+)\s*::\s*(.+)")
+    regex_comment = re.compile(r"^\s*#")
+    regex_check = re.compile(r"^\s*(.+)\s+!\s*(.+)\s*::\s*(.+)")
 
     try:
         with open(filepath) as f:
@@ -354,14 +359,15 @@ def _rootkit_files2json(filepath):
 def _rootkit_trojans2json(filepath):
     """
     Returns the rootkit trojans file as dictionary.
+
     :return: rootkit trojans file as dictionary.
     """
 
     data = []
 
     # file_name !string_to_search!Description
-    regex_comment = re.compile("^\s*#")
-    regex_check = re.compile("^\s*(.+)\s+!\s*(.+)\s*!\s*(.+)")
+    regex_comment = re.compile(r"^\s*#")
+    regex_check = re.compile(r"^\s*(.+)\s+!\s*(.+)\s*!\s*(.+)")
 
     try:
         with open(filepath) as f:
@@ -389,6 +395,128 @@ def _ar_conf2json(file_path):
 
 
 # Main functions
+def get_ossec_conf(section=None, field=None):
+    """
+    Returns ossec.conf (manager) as dictionary.
+
+    :param section: Filters by section (i.e. rules).
+    :param field: Filters by field in section (i.e. included).
+    :return: ossec.conf (manager) as dictionary.
+    """
+
+    try:
+        # Read XML
+        xml_data = load_ossec_xml(common.ossec_conf)
+
+        # Parse XML to JSON
+        data = _ossecconf2json(xml_data)
+    except Exception as e:
+        raise OssecAPIException(1101, str(e))
+
+    if section:
+        try:
+            data = data[section]
+        except KeyError as e:
+            if section not in conf_sections.keys():
+                raise OssecAPIException(1102, e.args[0])
+            else:
+                raise OssecAPIException(1106, e.args[0])
+
+    if section and field:
+        try:
+            data = data[field]  # data[section][field]
+        except:
+            raise OssecAPIException(1103)
+
+    return data
+
+
+def get_agent_conf(group_id=None, offset=0, limit=common.database_limit, filename=None):
+    """
+    Returns agent.conf as dictionary.
+
+    :return: agent.conf as dictionary.
+    """
+    if group_id:
+        if not Agent.group_exists(group_id):
+            raise OssecAPIException(1710, group_id)
+
+        agent_conf = "{0}/{1}".format(common.shared_path, group_id)
+
+    if filename:
+        agent_conf_name = filename
+    else:
+        agent_conf_name = 'agent.conf'
+
+    agent_conf += "/{0}".format(agent_conf_name)
+
+    if not os_path.exists(agent_conf):
+        raise OssecAPIException(1006, agent_conf)
+
+    try:
+        # Read XML
+        xml_data = load_ossec_xml(agent_conf)
+
+        # Parse XML to JSON
+        data = _agentconf2json(xml_data)
+    except Exception as e:
+        raise OssecAPIException(1101, str(e))
+
+
+    return {'totalItems': len(data), 'items': cut_array(data, offset, limit)}
+
+
+def get_file_conf(filename, group_id=None, type_conf=None):
+    """
+    Returns the configuration file as dictionary.
+
+    :return: configuration file as dictionary.
+    """
+
+    if group_id:
+        if not Agent.group_exists(group_id):
+            raise OssecAPIException(1710, group_id)
+
+        file_path = "{0}/{1}".format(common.shared_path, filename) \
+                    if filename == 'ar.conf' else \
+                    "{0}/{1}/{2}".format(common.shared_path, group_id, filename)
+    else:
+        file_path = "{0}/{1}".format(common.shared_path, filename)
+
+    if not os_path.exists(file_path):
+        raise OssecAPIException(1006, file_path)
+
+    types = {
+        'conf': get_agent_conf,
+        'rootkit_files': _rootkit_files2json,
+        'rootkit_trojans': _rootkit_trojans2json,
+        'rcl': _rcl2json
+    }
+
+    data = {}
+    if type_conf:
+        if type_conf in types:
+            if type_conf == 'conf':
+                data = types[type_conf](group_id, limit=None, filename=filename)
+            else:
+                data = types[type_conf](file_path)
+        else:
+            raise OssecAPIException(1104, "{0}. Valid types: {1}".format(type_conf, types.keys()))
+    else:
+        if filename == "agent.conf":
+            data = get_agent_conf(group_id, limit=None, filename=filename)
+        elif filename == "rootkit_files.txt":
+            data = _rootkit_files2json(file_path)
+        elif filename == "rootkit_trojans.txt":
+            data = _rootkit_trojans2json(file_path)
+        elif filename == "ar.conf":
+            data = _ar_conf2json(file_path)
+        else:
+            data = _rcl2json(file_path)
+
+    return data
+
+
 def parse_internal_options(high_name, low_name):
     def get_config(config_path):
         with open(config_path) as f:

@@ -41,7 +41,7 @@ def status():
     return data
 
 def __get_ossec_log_fields(log):
-    regex_category = re.compile("^(\d\d\d\d/\d\d/\d\d\s\d\d:\d\d:\d\d)\s(\S+):\s(\S+):\s(.*)$")
+    regex_category = re.compile(r"^(\d\d\d\d/\d\d/\d\d\s\d\d:\d\d:\d\d)\s(\S+):\s(\S+):\s(.*)$")
 
     match = re.search(regex_category, log)
 
@@ -55,7 +55,7 @@ def __get_ossec_log_fields(log):
             category = "ossec-rootcheck"
 
         if "(" in category:  # Remove ()
-            category = re.sub("\(\d\d\d\d\)", "", category)
+            category = re.sub(r"\(\d\d\d\d\)", "", category)
     else:
         return None
 

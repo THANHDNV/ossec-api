@@ -189,8 +189,6 @@ if __name__ == "__main__":
             'PUT/agents/:agent_id/upgrade_custom': Agent.upgrade_agent_custom,
             '/agents/:agent_id/upgrade_result': Agent.get_upgrade_result,
 
-            '/agents/stats/distinct': distinct.get_distinct_agents,
-
             # Decoders
             '/decoders': Decoder.get_decoders,
             '/decoders/files': Decoder.get_decoders_files,
@@ -205,6 +203,7 @@ if __name__ == "__main__":
             '/manager/logs/summary': manager.ossec_log_summary,
             '/manager/logs': manager.ossec_log,
 
+            # Check later
             # Rootcheck
             '/rootcheck/:agent_id': rootcheck.print_db,
             '/rootcheck/:agent_id/pci': rootcheck.get_pci,

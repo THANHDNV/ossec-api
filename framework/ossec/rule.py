@@ -6,10 +6,10 @@
 import re
 from glob import glob
 from xml.etree.ElementTree import fromstring
-import wazuh.configuration as configuration
-from wazuh.exception import WazuhException
-from wazuh import common
-from wazuh.utils import cut_array, sort_array, search_array, load_wazuh_xml
+import configuration as configuration
+from exception import OssecAPIException
+import common
+from utils import cut_array, sort_array, search_array, load_ossec_xml
 from sys import version_info
 
 class Rule:
@@ -41,25 +41,25 @@ class Rule:
         if isinstance(other, Rule):
             return self.id < other.id
         else:
-            raise WazuhException(1204)
+            raise OssecAPIException(1204)
 
     def __le__(self, other):
         if isinstance(other, Rule):
             return self.id <= other.id
         else:
-            raise WazuhException(1204)
+            raise OssecAPIException(1204)
 
     def __gt__(self, other):
         if isinstance(other, Rule):
             return self.id > other.id
         else:
-            raise WazuhException(1204)
+            raise OssecAPIException(1204)
 
     def __ge__(self, other):
         if isinstance(other, Rule):
             return self.id >= other.id
         else:
-            raise WazuhException(1204)
+            raise OssecAPIException(1204)
 
 
     def to_dict(self):
@@ -134,7 +134,7 @@ class Rule:
         elif status in [Rule.S_ALL, Rule.S_ENABLED, Rule.S_DISABLED]:
             return status
         else:
-            raise WazuhException(1202)
+            raise OssecAPIException(1202)
 
 
     @staticmethod
@@ -157,7 +157,7 @@ class Rule:
         # Rules configuration
         ruleset_conf = configuration.get_ossec_conf(section='ruleset')
         if not ruleset_conf:
-            raise WazuhException(1200)
+            raise OssecAPIException(1200)
 
         tmp_data = []
         tags = ['rule_include', 'rule_exclude']
@@ -253,7 +253,7 @@ class Rule:
         if level:
             levels = level.split('-')
             if len(levels) < 0 or len(levels) > 2:
-                raise WazuhException(1203)
+                raise OssecAPIException(1203)
 
         for rule_file in Rule.get_rules_files(status=status, limit=None)['items']:
             all_rules.extend(Rule.__load_rules_from_file(rule_file['file'], rule_file['path'], rule_file['status']))
@@ -339,7 +339,7 @@ class Rule:
         :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
         """
         if requirement != 'pci' and requirement != 'gdpr':
-            raise WazuhException(1205, requirement)
+            raise OssecAPIException(1205, requirement)
 
         req = list({req for rule in Rule.get_rules(limit=None)['items'] for req in rule.to_dict()[requirement]})
 
@@ -387,7 +387,7 @@ class Rule:
         try:
             rules = []
             
-            root = load_wazuh_xml("{}/{}".format(rule_path, rule_file))
+            root = load_ossec_xml("{}/{}".format(rule_path, rule_file))
 
             for xml_group in root.getchildren():
                 if xml_group.tag.lower() == "group":
@@ -441,6 +441,6 @@ class Rule:
 
                             rules.append(rule)
         except Exception as e:
-            raise WazuhException(1201, "{0}. Error: {1}".format(rule_file, str(e)))
+            raise OssecAPIException(1201, "{0}. Error: {1}".format(rule_file, str(e)))
 
         return rules

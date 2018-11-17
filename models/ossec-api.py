@@ -189,10 +189,12 @@ if __name__ == "__main__":
             'PUT/agents/:agent_id/upgrade_custom': Agent.upgrade_agent_custom,
             '/agents/:agent_id/upgrade_result': Agent.get_upgrade_result,
 
+            # Re-check
             # Decoders
             '/decoders': Decoder.get_decoders,
             '/decoders/files': Decoder.get_decoders_files,
 
+            # Re-check
             # Managers
             '/manager/info': ossec.get_ossec_init,
             '/manager/status': manager.status,
@@ -212,17 +214,20 @@ if __name__ == "__main__":
             'PUT/rootcheck': rootcheck.run,
             'DELETE/rootcheck': rootcheck.clear,
 
+            # Re-check
             # Rules
             '/rules': Rule.get_rules,
             '/rules/pci': Rule.get_pci,
             '/rules/files': Rule.get_rules_files,
 
+            # Check later
             # Syscheck
             '/syscheck/:agent_id': syscheck.files,
             '/syscheck/:agent_id/last_scan': syscheck.last_scan,
             'PUT/syscheck': syscheck.run,
             'DELETE/syscheck': syscheck.clear,
 
+            # Re-check
             # Active response
             '/PUT/active-response/:agent_id': active_response.run_command,
         }

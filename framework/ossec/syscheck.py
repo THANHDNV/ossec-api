@@ -3,11 +3,11 @@
 # Created by Wazuh, Inc. <info@wazuh.com>.
 # This program is a free software; you can redistribute it and/or modify it under the terms of GPLv2
 
-from wazuh.exception import WazuhException
-from wazuh.utils import execute, filemode
-from wazuh.agent import Agent
-from wazuh.database import Connection
-from wazuh.ossec_queue import OssecQueue
+from exception import WazuhException
+from utils import execute, filemode
+from agent import Agent
+from database import Connection
+from ossec_queue import OssecQueue
 from wazuh import common
 from glob import glob
 from os import remove, path

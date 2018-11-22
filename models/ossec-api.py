@@ -14,6 +14,7 @@ error_ossec_package = 0
 exception_error = None
 try:
     new_path = os_path.abspath('../framework')
+    print(new_path)
     path.append(new_path)
     from ossec import Ossec_API
     from ossec.exception import OssecAPIException
@@ -23,10 +24,9 @@ try:
     import ossec.configuration as configuration
     import ossec.manager as manager
     import ossec.stats as stats
-    import ossec.rootcheck as rootcheck
+    # import ossec.rootcheck as rootcheck
     import ossec.active_response as active_response
-    import ossec.syscheck as syscheck
-    import ossec.distinct as distinct
+    # import ossec.syscheck as syscheck
 except (ImportError, SyntaxError) as e:
     error = str(e)
     error_ossec_package = -1
@@ -59,11 +59,15 @@ def print_json(data, error=0):
 
 
 def encode_json(o):
+    print(o)
     if isinstance(o, Rule):
+        print("Rule")
         return o.to_dict()
     elif isinstance(o, Agent):
+        print('Agent')
         return o.to_dict()
     elif isinstance(o, Decoder):
+        print('Decoder')
         return o.to_dict()
 
     print_json("ossec-Python Internal Error: data encoding unknown", 1000)
@@ -207,12 +211,12 @@ if __name__ == "__main__":
 
             # Check later
             # Rootcheck
-            '/rootcheck/:agent_id': rootcheck.print_db,
-            '/rootcheck/:agent_id/pci': rootcheck.get_pci,
-            '/rootcheck/:agent_id/cis': rootcheck.get_cis,
-            '/rootcheck/:agent_id/last_scan': rootcheck.last_scan,
-            'PUT/rootcheck': rootcheck.run,
-            'DELETE/rootcheck': rootcheck.clear,
+            # '/rootcheck/:agent_id': rootcheck.print_db,
+            # '/rootcheck/:agent_id/pci': rootcheck.get_pci,
+            # '/rootcheck/:agent_id/cis': rootcheck.get_cis,
+            # '/rootcheck/:agent_id/last_scan': rootcheck.last_scan,
+            # 'PUT/rootcheck': rootcheck.run,
+            # 'DELETE/rootcheck': rootcheck.clear,
 
             # Re-check
             # Rules
@@ -222,10 +226,10 @@ if __name__ == "__main__":
 
             # Check later
             # Syscheck
-            '/syscheck/:agent_id': syscheck.files,
-            '/syscheck/:agent_id/last_scan': syscheck.last_scan,
-            'PUT/syscheck': syscheck.run,
-            'DELETE/syscheck': syscheck.clear,
+            # '/syscheck/:agent_id': syscheck.files,
+            # '/syscheck/:agent_id/last_scan': syscheck.last_scan,
+            # 'PUT/syscheck': syscheck.run,
+            # 'DELETE/syscheck': syscheck.clear,
 
             # Re-check
             # Active response
@@ -240,7 +244,7 @@ if __name__ == "__main__":
             data = functions[request['function']](**request['arguments'])
         else:
             data = functions[request['function']]()
-
+        
         print_json(data)
     except OssecAPIException as e:
         print_json(e.message, e.code)

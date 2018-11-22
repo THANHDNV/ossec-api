@@ -116,7 +116,8 @@ class Agent(object):
         """
         Calculates state based on last keep alive
         """
-        if not last_keep_alive:
+
+        if last_keep_alive == "None":
             return "Never connected"
         else:
             # divide date in format YY:mm:dd HH:MM:SS to create a datetime object.
@@ -137,7 +138,7 @@ class Agent(object):
 
         conn = Connection(db_url, collection)
 
-        if conn.getdb() == None:
+        if conn.getDb() == None:
             raise OssecAPIException(1600)
 
         pending = True
@@ -164,7 +165,7 @@ class Agent(object):
 
         db_select_fields = select_fields.copy()
         db_select_fields.pop('status', None)
-        db_data = conn.getdb()['agent'].find_one({'id': self.id}, db_select_fields)
+        db_data = conn.getDb()['agent'].find_one({'id': self.id}, db_select_fields)
 
         if db_data is None:
             raise OssecAPIException(1701)
@@ -173,6 +174,7 @@ class Agent(object):
 
         if db_data != None:
             no_result = False
+            db_data.pop('_id')
             self.id =  str(db_data.get("id","")).zfill(3)
             self.name = str(db_data.get("name",""))
             self.ip = str(db_data.get("ip",""))
@@ -560,10 +562,10 @@ class Agent(object):
 
         # conn = Connection(db_url, collection)
 
-        # if conn.getdb() == None:
+        # if conn.getDb() == None:
         #     raise OssecAPIException(1600)
 
-        # manager = conn.getdb()['agent'].find_one({"id": "000"}, {"name": 1})
+        # manager = conn.getDb()['agent'].find_one({"id": "000"}, {"name": 1})
         # manager_name = str(manager['name'])
 
         # if name == manager_name:
@@ -688,7 +690,8 @@ class Agent(object):
             else:
                 raise OssecAPIException(1729, status)
             status_filter["$or"].append(status_con)
-        request["$and"].append(status_filter)
+        if status_filter["$or"]:
+            request["$and"].append(status_filter)
 
 
     @staticmethod
@@ -712,7 +715,8 @@ class Agent(object):
             "dateAdd": {"$lte": time_old}
         }
         time_con["$or"].append(second_con)
-        request["$and"].append(time_con)
+        if time_con["$or"]:
+            request["$and"].append(time_con)
 
     @staticmethod
     def filter_query(filters, request):
@@ -745,7 +749,8 @@ class Agent(object):
                 else: # str
                     filter_con[filter_name] = re.compile(name.lower(), re.IGNORECASE) if filter_name != "version" \
                                                 else re.compile(re.sub( r'([a-zA-Z])([v])', r'\1 \2', name), re.IGNORECASE)
-                request["$and"].append(filter_con)
+                if filter_con:
+                    request["$and"].append(filter_con)
 
 
     @staticmethod
@@ -766,7 +771,7 @@ class Agent(object):
 
         conn = Connection(db_url, collection)
 
-        if conn.getdb() == None:
+        if conn.getDb() == None:
             raise OssecAPIException(1600)
 
         valid_select_fields = set(Agent.fields.values()) | {'status'}
@@ -805,22 +810,28 @@ class Agent(object):
             search_con = {
                 "$or": []
             }
-            regex = re.compile("{0}".format(int(search['value']) if search['value'].isdigit()
+            regex = re.compile("{0}".format(int(search['value']) if search['value'].isdigit() \
                                                                     else search['value']))
             for x in search_fields:
                 search_con["$or"].append({
                     x: regex
                 })
             if bool(search['negation']):
-                request["$and"].append({
-                    "$not": search_con
-                })
-            else :
-                request["$and"].append(search_con)
+                if search_con["$or"]:
+                    request["$and"].append({
+                        "$not": search_con
+                    })
+            else:
+                if search_con["$or"]:
+                    request["$and"].append(search_con)
 
-        db_data = conn.getdb()['agent'].find(request, select_fields)
+        if not request["$and"]:
+            request = {}
+        
+        db_data = conn.getDb()['agent'].find(request, select_fields)
         # Count
         data = {'totalItems': db_data.count()}
+
         # Sorting
         sort_con = []
         if sort:
@@ -852,19 +863,17 @@ class Agent(object):
 
         db_data = db_data.sort(sort_con).skip(offset).limit(limit)
 
-        if 'status' in user_select_fields:
-            for data in db_data:
-                data['status'] = Agent.calculate_status(data.get("lastAlive").__str__(), True)
-
         data['items'] = []
 
-        for agent in db_data:
-            item = {}
-            for field in user_select_fields.keys():
-                item[field] = agent.get[field]
-
-            data['items'].append(item)
-
+        if 'status' in user_select_fields:
+            for agent in db_data:
+                agent.pop('_id')
+                if agent['dateAdd']:
+                    agent['dateAdd'] = agent.get("dateAdd").__str__()
+                agent['lastAlive'] = agent.get("lastAlive").__str__()
+                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), True)
+                data['items'].append(agent)
+        
         return data
 
 
@@ -880,14 +889,14 @@ class Agent(object):
 
         conn = Connection(db_url, collection)
 
-        if conn.getdb() == None:
+        if conn.getDb() == None:
             raise OssecAPIException(1600)
 
         result = datetime.now() - timedelta(seconds=common.limit_seconds)
         # request['time_active'] = result.strftime('%Y-%m-%d %H:%M:%S')
 
-        total = conn.getdb()['agent'].find().count()
-        active = conn.getdb()['agent'].find({
+        total = conn.getDb()['agent'].find().count()
+        active = conn.getDb()['agent'].find({
             "$or": [
                 {
                     "keepAlive": {
@@ -900,13 +909,13 @@ class Agent(object):
             ]
         }).count()
 
-        disconnected = conn.getdb()['agent'].find({
+        disconnected = conn.getDb()['agent'].find({
             "keepAlive": {
                 "$lt": result
             }
         }).count()
 
-        never = conn.getdb()['agent'].find({
+        never = conn.getDb()['agent'].find({
             "keepAlive": None,
             "id": {
                 "$exists": True,
@@ -973,10 +982,10 @@ class Agent(object):
 
         conn = Connection(db_url, collection)
 
-        if conn.getdb() == None:
+        if conn.getDb() == None:
             raise OssecAPIException(1600)
 
-        agent = conn.getdb()['agent'].find_one({"name": agent_name}, {"id": 1})
+        agent = conn.getDb()['agent'].find_one({"name": agent_name}, {"id": 1})
 
         if agent:
             return Agent(agent.get("id")).get_basic_information(select)
@@ -1153,7 +1162,7 @@ class Agent(object):
 
         conn = Connection(db_url, collection)
 
-        if conn.getdb() == None:
+        if conn.getDb() == None:
             raise OssecAPIException(1600)
         
         # Get manager version
@@ -1172,7 +1181,7 @@ class Agent(object):
             select_fields[x] = 1
         
         # Count
-        db_data = conn.getdb()['agent'].find({
+        db_data = conn.getDb()['agent'].find({
             "$and": [
                 {
                     "version": { "$ne": manager_ver }
@@ -1214,11 +1223,8 @@ class Agent(object):
         data['items'] = []
 
         for agent in db_data:
-            item = {}
-            for field in select_fields.keys():
-                item[field] = agent.get[field]
-
-            data['items'].append(item)
+            agent.pop('_id')
+            data['items'].append(agent)
 
         return data
 

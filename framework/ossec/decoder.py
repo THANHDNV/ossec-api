@@ -6,10 +6,10 @@
 import re
 from glob import glob
 from xml.etree.ElementTree import fromstring
-import wazuh.configuration as configuration
-from wazuh.exception import WazuhException
-from wazuh import common
-from wazuh.utils import cut_array, sort_array, search_array, load_wazuh_xml
+import configuration as configuration
+from exception import OssecAPIException
+import common
+from utils import cut_array, sort_array, search_array, load_ossec_xml
 from sys import version_info
 
 class Decoder:
@@ -61,7 +61,7 @@ class Decoder:
         elif status in [Decoder.S_ALL, Decoder.S_ENABLED, Decoder.S_DISABLED]:
             return status
         else:
-            raise WazuhException(1202)
+            raise OssecAPIException(1202)
 
     @staticmethod
     def get_decoders_files(status=None, path=None, file=None, offset=0, limit=common.database_limit, sort=None, search=None):
@@ -82,7 +82,7 @@ class Decoder:
 
         ruleset_conf = configuration.get_ossec_conf(section='ruleset')
         if not ruleset_conf:
-            raise WazuhException(1500)
+            raise OssecAPIException(1500)
 
         tmp_data = []
         tags = ['decoder_include', 'decoder_exclude']
@@ -206,7 +206,7 @@ class Decoder:
             decoders = []
             position = 0
 
-            root = load_wazuh_xml("{}/{}".format(decoder_path, decoder_file))
+            root = load_ossec_xml("{}/{}".format(decoder_path, decoder_file))
 
             for xml_decoder in root.getchildren():
                 # New decoder
@@ -228,6 +228,6 @@ class Decoder:
 
                     decoders.append(decoder)
         except Exception as e:
-            raise WazuhException(1501, "{0}. Error: {1}".format(decoder_file, str(e)))
+            raise OssecAPIException(1501, "{0}. Error: {1}".format(decoder_file, str(e)))
 
         return decoders

@@ -11,6 +11,7 @@ from ossec_queue import OssecQueue
 import common
 from glob import glob
 from os import remove, path
+import re
 
 
 def run(agent_id=None, all_agents=False):
@@ -65,24 +66,29 @@ def clear(agent_id=None, all_agents=False):
     """
 
     # Clear DB
-    if int(all_agents):
-        db_agents = glob('{0}/*-*.db'.format(common.database_path_agents))
-    else:
-        db_agents = glob('{0}/{1}-*.db'.format(common.database_path_agents, agent_id))
+    conn = Connection(common.database_path)
+    
+    regex = re.compile(r'^\d{,3}-\S+$')
+    db_agents_list = []
 
-    if not db_agents:
+    if not int(all_agents):
+        raw_str = r'^' + "{}".format(int(agent_id)).zfill(3) + r'-\S+$'
+        regex = re.compile(raw_str)
+
+    for db_agent in conn.getDbsName():
+            if (regex.search(db_agent) != None):
+                db_agents_list.append(db_agent)
+
+    if (db_agents_list.count() <= 0):
         raise OssecAPIException(1600)
 
-    for db_agent in db_agents:
-        conn = Connection(db_agent)
-        conn.begin()
-        try:
-            conn.execute('DELETE FROM pm_event')
-        except Exception as exception:
-            raise exception
-        finally:
-            conn.commit()
-            conn.vacuum()
+    for db_agent in db_agents_list:
+        conn.connect(db_agent)
+        if conn.getDb() != None:
+            doc = conn.getDb()['pm_event']
+            if doc != None:
+                doc.drop()
+                conn.vacuum()
 
     # Clear OSSEC info
     if int(all_agents):

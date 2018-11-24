@@ -557,19 +557,19 @@ class Agent(object):
 
         # Check manager name
         # not needed yet since haven't add manager to database
-        # db_url = common.database_path
-        # collection = common.global_db
+        db_url = common.database_path
+        collection = common.global_db
 
-        # conn = Connection(db_url, collection)
+        conn = Connection(db_url, collection)
 
-        # if conn.getDb() == None:
-        #     raise OssecAPIException(1600)
+        if conn.getDb() == None:
+            raise OssecAPIException(1600)
 
-        # manager = conn.getDb()['agent'].find_one({"id": "000"}, {"name": 1})
-        # manager_name = str(manager['name'])
+        manager = conn.getDb()['agent'].find_one({"id": "000"}, {"name": 1})
+        manager_name = str(manager['name'])
 
-        # if name == manager_name:
-        #     raise OssecAPIException(1705, name)
+        if name == manager_name:
+            raise OssecAPIException(1705, name)
 
         # Check if ip, name or id exist in client.keys
         last_id = 0
@@ -871,7 +871,7 @@ class Agent(object):
                 if agent['dateAdd']:
                     agent['dateAdd'] = agent.get("dateAdd").__str__()
                 agent['lastAlive'] = agent.get("lastAlive").__str__()
-                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), True)
+                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), True)  if agent.get("id") != "000" else "Alive"
                 data['items'].append(agent)
         
         return data

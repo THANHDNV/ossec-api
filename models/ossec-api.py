@@ -13,8 +13,11 @@ import signal
 error_ossec_package = 0
 exception_error = None
 try:
-    new_path = os_path.abspath('../framework')
-    print(new_path)
+    new_path = ""
+    if (os_path.exists(os_path.abspath("../framework"))):
+        new_path = os_path.abspath('../framework')
+    else:
+        new_path = os_path.abspath('./framework')
     path.append(new_path)
     from ossec import Ossec_API
     from ossec.exception import OssecAPIException

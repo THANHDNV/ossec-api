@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+exec_cmd() {
+    eval $1 > /dev/null 2>&1 || error_and_exit "$1"
+}
+
+print() {
+    echo -e $1
+}
+
+DEF_OSSDIR="/var/ossec"
+if [ -z "$DIRECTORY" ]; then
+    DIRECTORY=$DEF_OSSDIR
+fi
+
+APILOG_PATH="${DIRECTORY}/logs/api.log"
+if [ ! -f $APILOG_PATH ]; then
+    touch $APILOG_PATH
+fi
+exec_cmd "chown root:ossec $APILOG_PATH"
+exec_cmd "chmod 660 $APILOG_PATH"
+
+APILOG_DIR="${DIRECTORY}/logs/api"
+if [ ! -d $APILOG_DIR ]; then
+    mkdir $APILOG_DIR
+fi
+exec_cmd "chown ossec:ossec $APILOG_DIR"
+exec_cmd "chmod 750 $APILOG_DIR"
+
+print "Finish Configuring"
+exit 0

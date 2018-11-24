@@ -103,6 +103,7 @@ exports.exec = function(cmd, args, stdin, callback) {
 }
 
 function tryParseJSON (jsonString){
+    logger.debug(jsonString)
     try {
         var o = JSON.parse(jsonString);
 

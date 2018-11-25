@@ -14,13 +14,15 @@ from base64 import b64encode
 from shutil import copyfile, move, copytree
 from platform import platform
 from os import remove, chown, chmod, path, makedirs, rename, urandom, listdir, stat
-from time import time, sleep
+from time import time, sleep, timezone
 import socket
 import hashlib
 from operator import setitem
 import re
 import fcntl
 from json import loads
+
+timeoffset = -timezone
 
 try:
     from urllib2 import urlopen, URLError, HTTPError
@@ -181,11 +183,12 @@ class Agent(object):
             self.name = str(db_data.get("name",""))
             self.ip = str(db_data.get("ip",""))
             self.internal_key = str(db_data.get("key",""))
-            self.dateAdd = db_data.get("dateAdd").__str__() if db_data.get("dateAdd") != None else None
+            self.dateAdd = (db_data.get("dateAdd") + timedelta(seconds=timeoffset)).__str__() if db_data.get("dateAdd") != None else None
             self.version = str(db_data.get("version",""))
+            pending = False if self.version != "" else True
             self.os['name'] = str(db_data.get("os",""))
             self.os['os_arch'] = str(db_data.get("os_arch",""))
-            self.lastKeepAlive = db_data.get("lastAlive").__str__() if db_data.get("lastAlive") != None else None
+            self.lastKeepAlive = (db_data.get("lastAlive") + timedelta(seconds=timeoffset)).__str__() if db_data.get("lastAlive") != None else None
             self.configSum = str(db_data.get("config_sum","")) if str(db_data.get("config_sum","")) != "" else None
 
         if self.id != "000":
@@ -867,14 +870,21 @@ class Agent(object):
 
         data['items'] = []
 
-        if 'status' in user_select_fields:
-            for agent in db_data:
-                agent.pop('_id')
-                if agent['dateAdd']:
+        for agent in db_data:
+            agent.pop('_id')
+            if 'dateAdd' in user_select_fields:
+                if agent.get("dateAdd") != None:
+                    agent['dateAdd'] = (agent.get("dateAdd") + timedelta(seconds=timeoffset)).__str__()
+                else:
                     agent['dateAdd'] = agent.get("dateAdd").__str__()
-                agent['lastAlive'] = agent.get("lastAlive").__str__()
-                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), True)  if agent.get("id") != "000" else "Alive"
-                data['items'].append(agent)
+            if 'lastAlive' in user_select_fields:
+                if agent.get("lastAlive") != None:
+                    agent['lastAlive'] = (agent.get("lastAlive") + timedelta(seconds=timeoffset)).__str__()
+                else:
+                    agent['lastAlive'] = agent.get("lastAlive").__str__()
+            if 'status' in user_select_fields:
+                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), False if agent.get("version", "") != "" else True)  if agent.get("id") != "000" else "Alive"
+            data['items'].append(agent)
         
         return data
 

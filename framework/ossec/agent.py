@@ -104,7 +104,9 @@ class Agent(object):
         return str(self.to_dict())
 
     def to_dict(self):
-        dictionary = {'id': self.id, 'name': self.name, 'ip': self.ip, 'internal_key': self.internal_key, 'os': self.os, 'version': self.version, 'dateAdd': self.dateAdd, 'lastKeepAlive': self.lastKeepAlive, 'status': self.status, 'key': self.key, 'configSum': self.configSum, 'mergedSum': self.mergedSum, 'group': self.group, 'manager_host': self.manager_host }
+        dictionary = {'id': self.id, 'name': self.name, 'ip': self.ip, 'internal_key': self.internal_key, 'os': self.os, 'version': self.version, 'dateAdd': self.dateAdd, 'lastKeepAlive': self.lastKeepAlive, 'status': self.status, 'key': self.key,
+        # 'configSum': self.configSum,
+        }
 
         return dictionary
     
@@ -165,7 +167,7 @@ class Agent(object):
 
         db_select_fields = select_fields.copy()
         db_select_fields.pop('status', None)
-        db_data = conn.getDb()['agent'].find_one({'id': self.id}, db_select_fields)
+        db_data = conn.getDb()['agent'].find_one({'id': str(int(self.id)).zfill(3)}, db_select_fields)
 
         if db_data is None:
             raise OssecAPIException(1701)
@@ -183,7 +185,7 @@ class Agent(object):
             self.version = str(db_data.get("version",""))
             self.os['name'] = str(db_data.get("os",""))
             self.os['os_arch'] = str(db_data.get("os_arch",""))
-            self.lastAlive = db_data.get("lastAlive").__str__() if db_data.get("lastAlive") != None else None
+            self.lastKeepAlive = db_data.get("lastAlive").__str__() if db_data.get("lastAlive") != None else None
             self.configSum = str(db_data.get("config_sum","")) if str(db_data.get("config_sum","")) != "" else None
 
         if self.id != "000":

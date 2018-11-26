@@ -183,12 +183,12 @@ class Agent(object):
             self.name = str(db_data.get("name",""))
             self.ip = str(db_data.get("ip",""))
             self.internal_key = str(db_data.get("key",""))
-            self.dateAdd = (db_data.get("dateAdd") + timedelta(seconds=timeoffset)).__str__() if db_data.get("dateAdd") != None else None
+            self.dateAdd = (db_data.get("dateAdd") + timedelta(seconds=timeoffset)).__str__() if db_data.get("dateAdd") != None else "None"
             self.version = str(db_data.get("version",""))
             pending = False if self.version != "" else True
             self.os['name'] = str(db_data.get("os",""))
             self.os['os_arch'] = str(db_data.get("os_arch",""))
-            self.lastKeepAlive = (db_data.get("lastAlive") + timedelta(seconds=timeoffset)).__str__() if db_data.get("lastAlive") != None else None
+            self.lastKeepAlive = (db_data.get("lastAlive") + timedelta(seconds=timeoffset)).__str__() if db_data.get("lastAlive") != None else "None"
             self.configSum = str(db_data.get("config_sum","")) if str(db_data.get("config_sum","")) != "" else None
 
         if self.id != "000":
@@ -643,7 +643,6 @@ class Agent(object):
                 # Tmp file
                 f_keys_temp = '{0}.tmp'.format(common.client_keys)
                 open(f_keys_temp, 'a').close()
-
                 f_keys_st = stat(common.client_keys)
                 chown(f_keys_temp, common.ossec_uid, common.ossec_gid)
                 chmod(f_keys_temp, f_keys_st.st_mode)
@@ -676,7 +675,7 @@ class Agent(object):
 
     @staticmethod
     def filter_agents_by_status(status, request):
-        result = datetime.now() - timedelta(seconds=common.limit_seconds)
+        result = datetime.now() - timedelta(seconds=common.limit_seconds) - timedelta(seconds=timeoffset)
         status_filter = {"$or":[]}
         list_status = status.split(',')
 
@@ -685,12 +684,38 @@ class Agent(object):
             status_con = {}
             if status == 'active':
                 status_con["lastAlive"] = {"$gte": result}
+                status_con["version"] = { "$exists": True }
+                status_con = {
+                    "$or": [
+                        {
+                            "lastAlive": {
+                                "$gte": result
+                            },
+                            "version": {
+                                "$exist": True
+                            }
+                        },
+                        {
+                            "id": "000"
+                        }
+                    ]
+                }
             elif status == 'disconnected':
-                status_con["lastAlive"] = {"$lt": result}
+                status_con["lastAlive"] = {
+                    "$and": [
+                        {
+                            "$exist": True,
+                            "$lt": result,
+                        }
+                    ]
+                }
             elif status == "never connected" or status == "neverconnected":
                 status_con["lastAlive"] = None
             elif status == 'pending':
-                status_con["lastAlive"] = {"$ne": None}
+                status_con["lastAlive"] = {
+                    "$exists": True,
+                    "$ne": None
+                }
                 status_con["version"] = None
             else:
                 raise OssecAPIException(1729, status)
@@ -865,6 +890,8 @@ class Agent(object):
                 raise OssecAPIException(1405, str(limit))
         elif limit == 0:
             raise OssecAPIException(1406)
+        else:
+            limit = common.maximum_database_limit
 
         db_data = db_data.sort(sort_con).skip(offset).limit(limit)
 
@@ -904,15 +931,20 @@ class Agent(object):
         if conn.getDb() == None:
             raise OssecAPIException(1600)
 
-        result = datetime.now() - timedelta(seconds=common.limit_seconds)
+        result = datetime.now() -timedelta(seconds=timeoffset) - timedelta(seconds=common.limit_seconds)
         # request['time_active'] = result.strftime('%Y-%m-%d %H:%M:%S')
 
         total = conn.getDb()['agent'].find().count()
         active = conn.getDb()['agent'].find({
             "$or": [
                 {
-                    "keepAlive": {
+                    "lastAlive": {
+                        "$exists": True,
                         "$gte": result
+                    },
+                    "version": {
+                        "$exists": True,
+                        "$ne": None
                     }
                 },
                 {
@@ -922,20 +954,39 @@ class Agent(object):
         }).count()
 
         disconnected = conn.getDb()['agent'].find({
-            "keepAlive": {
+            "lastAlive": {
+                "$exists": True,
                 "$lt": result
+            },
+            "id": {
+                "$exists": True,
+                "$ne": "000"
+            },
+            "version": {
+                "$exists": True,
+                "$ne": None
             }
         }).count()
 
         never = conn.getDb()['agent'].find({
-            "keepAlive": None,
+            "lastAlive": {
+                "$exists": False
+            },
             "id": {
                 "$exists": True,
                 "$ne": "000"
             }
         }).count()
 
-        return {'Total': total, 'Active': active, 'Disconnected': disconnected, 'Never connected': never}
+        pending = conn.getDb()['agent'].find({
+            "lastAlive": {
+                "$exists": True,
+                "$ne": None
+            },
+            "version": None
+        }).count()
+
+        return {'Total': total, 'Active': active, 'Disconnected': disconnected, 'Never connected': never, "Pending": pending}
 
     @staticmethod
     def restart_agents(agent_id=None, restart_all=False):

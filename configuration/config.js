@@ -53,7 +53,7 @@ config.python = [
 config.use_only_authd = false;
 
 // Option to drop privileges (run as ossec)
-config.drop_privileges = true;
+config.drop_privileges = false;
 
 
 /************************* SSL OPTIONS ****************************************/

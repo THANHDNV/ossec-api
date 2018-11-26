@@ -106,7 +106,7 @@ function tryParseJSON (jsonString){
     logger.debug(jsonString)
     try {
         var o = JSON.parse(jsonString);
-
+        logger.debug(o)
         if (o && typeof o === "object" && o !== null) {
             return o;
         }

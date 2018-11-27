@@ -155,7 +155,7 @@ class Rule:
         status = Rule.__check_status(status)
 
         # Rules configuration
-        ruleset_conf = configuration.get_ossec_conf(section='ruleset')
+        ruleset_conf = configuration.get_ossec_conf(section='rules')
         if not ruleset_conf:
             raise OssecAPIException(1200)
 

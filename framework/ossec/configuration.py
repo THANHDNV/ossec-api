@@ -395,7 +395,7 @@ def _ar_conf2json(file_path):
 
 
 # Main functions
-def get_ossec_conf(section=None, field=None):
+def get_ossec_conf(section=None, field=None, filename=common.ossec_conf):
     """
     Returns ossec.conf (manager) as dictionary.
 
@@ -406,7 +406,7 @@ def get_ossec_conf(section=None, field=None):
 
     try:
         # Read XML
-        xml_data = load_ossec_xml(common.ossec_conf)
+        xml_data = load_ossec_xml(filename)
 
         # Parse XML to JSON
         data = _ossecconf2json(xml_data)

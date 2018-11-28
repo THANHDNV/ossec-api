@@ -399,8 +399,8 @@ class Agent(object):
 
                 if self.id == line_data[0] and line_data[1][0] not in ('#!'):
                     if not purge:
-                        f_tmp.write('{0} !{1} {2} {3}\n'.format(line_data[0], line_data[1], line_data[2], line_data[3]))
-
+                        # f_tmp.write('{0} !{1} {2} {3}\n'.format(line_data[0], line_data[1], line_data[2], line_data[3]))
+                        f_tmp.write(line[:4] + "#*#*#*#*#*#*#*#*#*#*#" + line[25:])
                     agent_found = True
                 else:
                     f_tmp.write(line)

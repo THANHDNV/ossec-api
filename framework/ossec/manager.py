@@ -46,7 +46,6 @@ def __get_ossec_log_fields(log):
     match = re.search(regex_category, log)
 
     if match:
-        print(match)
         date        = match.group(1)
         category    = match.group(2)
         type_log    = match.group(3)

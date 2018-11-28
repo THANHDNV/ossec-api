@@ -160,11 +160,10 @@ class Rule:
             raise OssecAPIException(1200)
 
         tmp_data = []
-        tags = ['rule_include', 'rule_exclude']
-        exclude_filenames =[]
+        tags = ['rule', 'include']
         for tag in tags:
             if tag in ruleset_conf:
-                item_status = Rule.S_DISABLED if tag == 'rule_exclude' else Rule.S_ENABLED
+                item_status = Rule.S_ENABLED
 
                 if type(ruleset_conf[tag]) is list:
                     items = ruleset_conf[tag]
@@ -179,12 +178,8 @@ class Rule:
                     else:
                         item_name = item
                         item_dir = "{0}/{1}".format(common.ruleset_rules_path, item)
-
-                    if tag == 'rule_exclude':
-                        exclude_filenames.append(item_name)
-                        # tmp_data.append({'file': item_name, 'path': '-', 'status': item_status})
-                    else:
-                        tmp_data.append({'file': item_name, 'path': item_dir, 'status': item_status})
+                    tmp_data.append({'file': item_name, 'path': item_dir, 'status': item_status})
+                        
 
         tag = 'rule_dir'
         if tag in ruleset_conf:
@@ -200,10 +195,7 @@ class Rule:
                     item_split = item.split('/')
                     item_name = item_split[-1]
                     item_dir = "/".join(item_split[:-1])
-                    if item_name in exclude_filenames:
-                        item_status = Rule.S_DISABLED
-                    else:
-                        item_status = Rule.S_ENABLED
+                    item_status = Rule.S_ENABLED                        
                     tmp_data.append({'file': item_name, 'path': item_dir, 'status': item_status})
 
         data = list(tmp_data)
@@ -297,35 +289,6 @@ class Rule:
 
         return {'items': cut_array(rules, offset, limit), 'totalItems': len(rules)}
 
-
-    @staticmethod
-    def get_groups(offset=0, limit=common.database_limit, sort=None, search=None):
-        """
-        Get all the groups used in the rules.
-
-        :param offset: First item to return.
-        :param limit: Maximum number of items to return.
-        :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-        :param search: Looks for items with the specified string.
-        :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-        """
-        groups = set()
-
-        for rule in Rule.get_rules(limit=None)['items']:
-            for group in rule.groups:
-                groups.add(group)
-
-        if search:
-            groups = search_array(groups, search['value'], search['negation'])
-
-        if sort:
-            groups = sort_array(groups, order=sort['order'])
-        else:
-            groups = sort_array(groups)
-
-        return {'items': cut_array(groups, offset, limit), 'totalItems': len(groups)}
-
-
     @staticmethod
     def _get_requirement(offset, limit, sort, search, requirement):
         """
@@ -387,7 +350,8 @@ class Rule:
         try:
             rules = []
             
-            root = load_ossec_xml("{}/{}".format(rule_path, rule_file))
+            # root = load_ossec_xml("{}/{}".format(rule_path, rule_file))
+            root = load_ossec_xml(rule_path)
 
             for xml_group in root.getchildren():
                 if xml_group.tag.lower() == "group":

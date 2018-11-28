@@ -62,15 +62,11 @@ def print_json(data, error=0):
 
 
 def encode_json(o):
-    print(o)
     if isinstance(o, Rule):
-        print("Rule")
         return o.to_dict()
     elif isinstance(o, Agent):
-        print('Agent')
         return o.to_dict()
     elif isinstance(o, Decoder):
-        print('Decoder')
         return o.to_dict()
 
     print_json("ossec-Python Internal Error: data encoding unknown", 1000)
@@ -190,11 +186,6 @@ if __name__ == "__main__":
             'POST/agents/insert': Agent.insert_agent,
             'DELETE/agents/:agent_id': Agent.remove_agent,
             'DELETE/agents/': Agent.remove_agents,
-
-            # Upgrade agents
-            'PUT/agents/:agent_id/upgrade': Agent.upgrade_agent,
-            'PUT/agents/:agent_id/upgrade_custom': Agent.upgrade_agent_custom,
-            '/agents/:agent_id/upgrade_result': Agent.get_upgrade_result,
 
             # Re-check
             # Decoders

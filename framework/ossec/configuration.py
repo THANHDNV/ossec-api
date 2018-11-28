@@ -48,21 +48,13 @@ conf_sections = {
         'type': 'merge',
         'list_options': ['content']
     },
-    'cis-cat': {
-        'type': 'merge',
-        'list_options': []
-    },
-    'syscollector': {
-        'type': 'merge',
-        'list_options': []
-    },
     'rootcheck': {
         'type': 'merge',
         'list_options': ['rootkit_files', 'rootkit_trojans', 'windows_audit', 'system_audit', 'windows_apps', 'windows_malware']
     },
-    'ruleset': {
+    'rules': {
         'type': 'merge',
-        'list_options':  ['include', 'rule', 'rule_dir', 'decoder', 'decoder_dir', 'list', 'rule_exclude', 'decoder_exclude']
+        'list_options':  ['include', 'rule', 'rule_dir', 'decoder', 'decoder_dir']
     },
     'syscheck': {
         'type': 'merge',

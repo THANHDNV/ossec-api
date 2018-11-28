@@ -80,16 +80,16 @@ class Decoder:
 
         status = Decoder.__check_status(status)
 
-        ruleset_conf = configuration.get_ossec_conf(section='ruleset')
+        ruleset_conf = configuration.get_ossec_conf(section='rules')
         if not ruleset_conf:
             raise OssecAPIException(1500)
 
         tmp_data = []
-        tags = ['decoder_include', 'decoder_exclude']
+        tags = ['decoder']
         exclude_filenames =[]
         for tag in tags:
             if tag in ruleset_conf:
-                item_status = Decoder.S_DISABLED if tag == 'decoder_exclude' else Decoder.S_ENABLED
+                item_status = Decoder.S_ENABLED
 
                 if type(ruleset_conf[tag]) is list:
                     items = ruleset_conf[tag]
@@ -105,12 +105,8 @@ class Decoder:
                         item_name = item
                         item_dir = "{0}/{1}".format(common.ruleset_rules_path, item)
 
-                    if tag == 'decoder_exclude':
-                        exclude_filenames.append(item_name)
-                        # tmp_data.append({'file': item_name, 'path': '-', 'status': item_status})
-                    else:
-                        tmp_data.append({'file': item_name, 'path': item_dir, 'status': item_status})
-
+                    tmp_data.append({'file': item_name, 'path': item_dir, 'status': item_status})
+                        
         tag = 'decoder_dir'
         if tag in ruleset_conf:
             if type(ruleset_conf[tag]) is list:
@@ -173,7 +169,14 @@ class Decoder:
         all_decoders = []
 
         for decoder_file in Decoder.get_decoders_files(status=status, limit=None)['items']:
-            all_decoders.extend(Decoder.__load_decoders_from_file(decoder_file['file'], decoder_file['path'], decoder_file['status']))
+            if glob(decoder_file['path']):
+                all_decoders.extend(Decoder.__load_decoders_from_file(decoder_file['file'], decoder_file['path'], decoder_file['status']))
+
+        if not all_decoders:
+            if (glob(common.default_decoder_xml)):
+                all_decoders.extend(Decoder.__load_decoders_from_file("decoder.xml", common.default_decoder_xml, Decoder.S_ENABLED))
+            if (glob(common.custom_decoder_xml)):
+                all_decoders.extend(Decoder.__load_decoders_from_file("local_decoder.xml", common.custom_decoder_xml, Decoder.S_ENABLED))
 
         decoders = list(all_decoders)
         for d in all_decoders:
@@ -206,8 +209,8 @@ class Decoder:
             decoders = []
             position = 0
 
-            root = load_ossec_xml("{}/{}".format(decoder_path, decoder_file))
-
+            # root = load_ossec_xml("{}/{}".format(decoder_path, decoder_file))
+            root = load_ossec_xml("{}".format(decoder_path))
             for xml_decoder in root.getchildren():
                 # New decoder
                 if xml_decoder.tag.lower() == "decoder":

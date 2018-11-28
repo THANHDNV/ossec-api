@@ -41,9 +41,6 @@ class Ossec_API:
         self.installation_date = None
         self.type = None
         self.path = ossec_path
-        self.max_agents = 'N/A'
-        self.openssl_support = 'N/A'
-        self.ruleset_version = None
         self.tz_offset = None
         self.tz_name = None
 
@@ -56,7 +53,7 @@ class Ossec_API:
         return str(self.to_dict())
 
     def to_dict(self):
-        return {'path': self.path, 'version': self.version, 'compilation_date': self.installation_date, 'type': self.type, 'max_agents': self.max_agents, 'openssl_support': self.openssl_support, 'ruleset_version': self.ruleset_version, 'tz_offset': self.tz_offset, 'tz_name': self.tz_name}
+        return {'path': self.path, 'version': self.version, 'compilation_date': self.installation_date, 'type': self.type, 'tz_offset': self.tz_offset, 'tz_name': self.tz_name}
 
     def get_ossec_init(self):
         """
@@ -88,30 +85,6 @@ class Ossec_API:
                                 self.type = match.group(2)
         except:
             raise OssecAPIException(1005, self.OSSEC_INIT)
-
-        # info DB
-        conn = Connection(common.database_path_global)
-
-        query = "SELECT * FROM info"
-        conn.execute(query)
-
-        for tuple in conn:
-            if tuple[0] == 'max_agents':
-                self.max_agents = tuple[1]
-            elif tuple[0] == 'openssl_support':
-                self.openssl_support = tuple[1]
-
-        # Ruleset version
-        ruleset_version_file = "{0}/ruleset/VERSION".format(self.path)
-        try:
-            with open(ruleset_version_file, 'r') as f:
-                line_regex = re.compile('(^\w+)="(.+)"')
-                for line in f:
-                    match = line_regex.match(line)
-                    if match and len(match.groups()) == 2:
-                        self.ruleset_version = match.group(2)
-        except:
-            raise OssecAPIException(1005, ruleset_version_file)
 
         # Timezone info
         try:

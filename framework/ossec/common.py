@@ -31,7 +31,8 @@ def set_paths_based_on_ossec(o_path='/var/ossec'):
     stats_path = '{0}/stats'.format(ossec_path)
 
     global ruleset_path
-    ruleset_path = '{0}/ruleset'.format(ossec_path)
+    # ruleset_path = '{0}/rules'.format(ossec_path)
+    ruleset_path = '{0}'.format(ossec_path)
 
     global groups_path
     groups_path = "{0}/queue/agent-groups".format(ossec_path)
@@ -56,6 +57,12 @@ def set_paths_based_on_ossec(o_path='/var/ossec'):
 
     global api_config_path
     api_config_path = "{0}/api/configuration/config.js".format(ossec_path)
+
+    global default_decoder_xml
+    default_decoder_xml = "{0}/etc/decoder.xml".format(ossec_path)
+
+    global custom_decoder_xml
+    custom_decoder_xml = "{0}/etc/local_decoder.xml".format(ossec_path)
 
     # global database_path_agents
     # database_path_agents = database_path + '/agents'

@@ -41,11 +41,12 @@ def status():
     return data
 
 def __get_ossec_log_fields(log):
-    regex_category = re.compile(r"^(\d\d\d\d/\d\d/\d\d\s\d\d:\d\d:\d\d)\s(\S+):\s(\S+):\s(.*)$")
+    regex_category = re.compile(r"^(\d\d\d\d/\d\d/\d\d\s\d\d:\d\d:\d\d)\s([^:\s]+):\s([^:\s]+):\s(.*)$")
 
     match = re.search(regex_category, log)
 
     if match:
+        print(match)
         date        = match.group(1)
         category    = match.group(2)
         type_log    = match.group(3)
@@ -134,7 +135,7 @@ def ossec_log_summary(months=3):
     categories = {}
 
     first_date = previous_month(months)
-
+    # with open('ossec.log.txt') as f:
     with open(common.ossec_log) as f:
         lines_count = 0
         for line in f:
@@ -157,7 +158,7 @@ def ossec_log_summary(months=3):
                 if category in categories:
                     categories[category]['all'] += 1
                 else:
-                    categories[category] = {'all': 1, 'info': 0, 'error': 0, 'critical': 0, 'warning': 0, 'debug': 0}
+                    categories[category] = {'all': 1, 'info': 0, 'error': 0, 'critical': 0, 'warn': 0, 'debug': 0}
                 categories[category][log_type] += 1
             else:
                 continue

@@ -27,9 +27,9 @@ try:
     import ossec.configuration as configuration
     import ossec.manager as manager
     import ossec.stats as stats
-    # import ossec.rootcheck as rootcheck
+    import ossec.rootcheck as rootcheck
     import ossec.active_response as active_response
-    # import ossec.syscheck as syscheck
+    import ossec.syscheck as syscheck
 except (ImportError, SyntaxError) as e:
     error = str(e)
     error_ossec_package = -1
@@ -205,12 +205,11 @@ if __name__ == "__main__":
 
             # Check later
             # Rootcheck
-            # '/rootcheck/:agent_id': rootcheck.print_db,
-            # '/rootcheck/:agent_id/pci': rootcheck.get_pci,
-            # '/rootcheck/:agent_id/cis': rootcheck.get_cis,
-            # '/rootcheck/:agent_id/last_scan': rootcheck.last_scan,
-            # 'PUT/rootcheck': rootcheck.run,
-            # 'DELETE/rootcheck': rootcheck.clear,
+            '/rootcheck/:agent_id': rootcheck.print_db,
+            '/rootcheck/:agent_id/pci': rootcheck.get_pci,
+            '/rootcheck/:agent_id/last_scan': rootcheck.last_scan,
+            'PUT/rootcheck': rootcheck.run,
+            'DELETE/rootcheck': rootcheck.clear,
 
             # Re-check
             # Rules
@@ -220,10 +219,10 @@ if __name__ == "__main__":
 
             # Check later
             # Syscheck
-            # '/syscheck/:agent_id': syscheck.files,
-            # '/syscheck/:agent_id/last_scan': syscheck.last_scan,
-            # 'PUT/syscheck': syscheck.run,
-            # 'DELETE/syscheck': syscheck.clear,
+            '/syscheck/:agent_id': syscheck.files,
+            '/syscheck/:agent_id/last_scan': syscheck.last_scan,
+            'PUT/syscheck': syscheck.run,
+            'DELETE/syscheck': syscheck.clear,
 
             # Re-check
             # Active response

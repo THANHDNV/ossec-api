@@ -840,8 +840,8 @@ class Agent(object):
             search_con = {
                 "$or": []
             }
-            regex = re.compile("{0}".format(int(search['value']) if search['value'].isdigit() \
-                                                                    else search['value']))
+            regex = re.compile(".*{0}.*".format(int(search['value']) if search['value'].isdigit() \
+                                                                    else search['value']), re.IGNORECASE)
             for x in search_fields:
                 search_con["$or"].append({
                     x: regex
@@ -1260,7 +1260,7 @@ class Agent(object):
         sort_con = []
         if sort:
             if sort['fields']:
-                allowed_sort_fields = fields.keys()
+                allowed_sort_fields = set(fields.keys())
                 # Check if every element in sort['fields'] is in allowed_sort_fields.
                 if not set(sort['fields']).issubset(allowed_sort_fields):
                     raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, sort['fields']))

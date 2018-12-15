@@ -2,6 +2,7 @@ import common
 from exception import OssecAPIException
 from os.path import isfile
 from pymongo import MongoClient
+import re
 
 class Connection:
     """
@@ -27,6 +28,17 @@ class Connection:
             self.__db = self.__mc[self.database]
         else:
             self.__db = None
+
+    def getDbById(self, id):
+        if (id == '000'):
+            if id in self.getDbsName():
+                return "000"
+        else:
+            regex = re.compile(r"^" + id + r"$(-\S+)?$")
+            for database in self.getDbsName():
+                if re.search(regex, database):
+                    return database
+        return None
 
     def getCol(self, collection):
         if self.__db == None:

@@ -12,7 +12,10 @@ import common
 from glob import glob
 from os import remove, path
 import re
+from time import timezone
+from datetime import timedelta, datetime
 
+timeoffset = -timezone
 
 def run(agent_id=None, all_agents=False):
     """
@@ -76,8 +79,8 @@ def clear(agent_id=None, all_agents=False):
         regex = re.compile(raw_str)
 
     for db_agent in conn.getDbsName():
-            if (regex.search(db_agent) != None):
-                db_agents_list.append(db_agent)
+        if (regex.search(db_agent) != None):
+            db_agents_list.append(db_agent)
 
     if (db_agents_list.count() <= 0):
         raise OssecAPIException(1600)
@@ -86,6 +89,10 @@ def clear(agent_id=None, all_agents=False):
         conn.connect(db_agent)
         if conn.getDb() != None:
             doc = conn.getDb()['pm_event']
+            if doc != None:
+                doc.drop()
+                conn.vacuum()
+            doc = conn.getDb()['pmCounterInfo']
             if doc != None:
                 doc.drop()
                 conn.vacuum()
@@ -107,7 +114,7 @@ def clear(agent_id=None, all_agents=False):
     return "Rootcheck database deleted"
 
 
-def print_db(agent_id=None, status='all', pci=None, cis=None, offset=0, limit=common.database_limit, sort=None, search=None):
+def print_db(agent_id=None, status='all', pci=None, offset=0, limit=common.database_limit, sort=None, search=None):
     """
     Returns a list of events from the database.
 
@@ -121,98 +128,130 @@ def print_db(agent_id=None, status='all', pci=None, cis=None, offset=0, limit=co
     :param search: Looks for items with the specified string.
     :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
     """
-
     # Connection
-    db_agent = glob('{0}/{1}-*.db'.format(common.database_path_agents, agent_id))
-    if not db_agent:
+    db_url = common.database_path
+    conn = Connection(db_url)
+    conn.connect(conn.getDbById(str(agent_id).zfill(3)))
+    if (conn.getDb() == None):
         raise OssecAPIException(1600)
-    else:
-        db_agent = db_agent[0]
 
-    conn = Connection(db_agent)
+    request = { "$and": [] }
+    
+    lastRootcheckEndTime = None
+    lastRootcheckEndTimeObj = list((conn.getDb()['pm_event'].find( { "log": 'Ending rootcheck scan.'} ).sort([('date_last', -1)]).limit(1)))[0]
+    if (lastRootcheckEndTimeObj != None):
+        lastRootcheckEndTime = lastRootcheckEndTimeObj.get('date_last', datetime.now())
 
-    request = {}
     fields = {'status': 'status', 'event': 'log', 'oldDay': 'date_first', 'readDay': 'date_last'}
 
-    partial = """SELECT {0} AS status, date_first, date_last, log, pci_dss, cis
-        FROM pm_event AS t
-        WHERE date_last {1} (SELECT datetime(date_last, '-86400 seconds') FROM pm_event WHERE log = 'Ending rootcheck scan.')"""
-
-    if status == 'all':
-        query = "SELECT {0} FROM (" + partial.format("'outstanding'", '>') + ' UNION ' + partial.format("'solved'", '<=') + \
-            ") WHERE log NOT IN ('Starting rootcheck scan.', 'Ending rootcheck scan.', 'Starting syscheck scan.', 'Ending syscheck scan.')"
-    elif status == 'outstanding':
-        query = "SELECT {0} FROM (" + partial.format("'outstanding'", '>') + \
-            ") WHERE log NOT IN ('Starting rootcheck scan.', 'Ending rootcheck scan.', 'Starting syscheck scan.', 'Ending syscheck scan.')"
+    request['$and'].append({
+        'log': {
+            '$nin': [
+                'Starting rootcheck scan.',
+                'Ending rootcheck scan.',
+                'Starting syscheck scan.',
+                'Ending syscheck scan.'
+            ]
+        }
+    })
+    if status == 'outstanding':
+        if lastRootcheckEndTime != None:
+            request['$and'].append({
+                'date_last': {
+                    '$gt': (lastRootcheckEndTime - timedelta(second=86400))
+                }
+            })
     elif status == 'solved':
-        query = "SELECT {0} FROM (" + partial.format("'solved'", '<=') + \
-            ") WHERE log NOT IN ('Starting rootcheck scan.', 'Ending rootcheck scan.', 'Starting syscheck scan.', 'Ending syscheck scan.')"
+        if lastRootcheckEndTime != None:
+            request['$and'].append({
+                'date_last': {
+                    '$lte': (lastRootcheckEndTime - timedelta(second=86400))
+                }
+            })
 
     if pci:
-        query += ' AND pci_dss = :pci'
-        request['pci'] = pci
+        request["$and"].append({"pci_dss": pci})
 
-    if cis:
-        query += ' AND cis = :cis'
-        request['cis'] = cis
-
+    # search
     if search:
-        query += " AND NOT" if bool(search['negation']) else ' AND'
-        query += " (" + " OR ".join(x + ' LIKE :search' for x in ('status', 'date_first', 'date_last', 'log')) + ")"
-        request['search'] = '%{0}%'.format(search['value'])
+        regex = re.compile(".*{0}.*".format(int(search['value']) if search['value'].isdigit() \
+                                                                    else search['value']), re.IGNORECASE)
+        search_con = {
+            "$or": []
+        }
 
-    # Total items
-
-    conn.execute(query.format('COUNT(*)'), request)
-    data = {'totalItems': conn.fetch()[0]}
+        for x in fields.values():
+            search_con["$or"].append({
+                x: regex
+            })
+        if bool(search['negation']):
+            if search_con["$or"]:
+                request["$and"].append({
+                    "$not": search_con
+                })
+        else:
+            if search_con["$or"]:
+                request["$and"].append(search_con)
 
     # Sorting
+    sort_con = []
     if sort:
         if sort['fields']:
-            allowed_sort_fields = fields.keys()
+            allowed_sort_fields = set(fields.keys())
             # Check if every element in sort['fields'] is in allowed_sort_fields
             if not set(sort['fields']).issubset(allowed_sort_fields):
                 uncorrect_fields = list(map(lambda x: str(x), set(sort['fields']) - set(allowed_sort_fields)))
                 raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, uncorrect_fields))
-                
-            query += ' ORDER BY ' + ','.join(['{0} {1}'.format(fields[i], sort['order']) for i in sort['fields']])
+            
+            for i in sort['fields']:
+                str_order = 1 if sort['order'] == 'asc' else -1
+                sort_con.append((Agent.fields[i], str_order))
         else:
-            query += ' ORDER BY date_last {0}'.format(sort['order'])
+            sort_con.append((fields["readDay"], 1 if sort['order'] == 'asc' else -1))
     else:
-        query += ' ORDER BY date_last DESC'
+        sort_con.append((fields["readDay"], -1))
 
     if limit:
         if limit > common.maximum_database_limit:
             raise OssecAPIException(1405, str(limit))
-        query += ' LIMIT :offset,:limit'
-        request['offset'] = offset
-        request['limit'] = limit
     elif limit == 0:
         raise OssecAPIException(1406)
 
-    select = ["status", "date_first", "date_last", "log", "pci_dss", "cis"]
+    select = ["status", "date_first", "date_last", "log", "pci_dss"]
+    select_fields = {}
+    for x in set(select):
+        select_fields[x] = 1
 
-    conn.execute(query.format(','.join(select)), request)
+    if not request["$and"]:
+        request = {}
 
+    data = {}
+    db_data = conn.getDb()['pm_event'].find(request, select_fields)
+    data['totalItems'] = db_data.count()
+    db_data = db_data.sort(sort_con).skip(offset).limit(limit)
+
+    # process get data
     data['items'] = []
-    for tuple in conn:
-        data_tuple = {}
 
-        if tuple[0] != None:
-            data_tuple['status'] = tuple[0]
-        if tuple[1] != None:
-            data_tuple['oldDay'] = tuple[1]
-        if tuple[2] != None:
-            data_tuple['readDay'] = tuple[2]
-        if tuple[3] != None:
-            data_tuple['event'] = tuple[3]
-        if tuple[4] != None:
-            data_tuple['pci'] = tuple[4]
-        if tuple[5] != None:
-            data_tuple['cis'] = tuple[5]
+    for pmEvent in db_data:
+        pmEvent.pop('_id')
+        if pmEvent.get("date_last") != None:
+            if (pmEvent['date_last'] > lastRootcheckEndTime) :
+                pmEvent['status'] = 'outstanding'
+            elif (pmEvent['date_last'] <= lastRootcheckEndTime) :
+                pmEvent['status'] = 'solved'
 
-        data['items'].append(data_tuple)
+        if pmEvent.get("date_first") != None:
+            pmEvent['date_first'] = (pmEvent.get("date_first") + timedelta(seconds=timeoffset)).__str__()
+        else:
+            pmEvent['date_first'] = pmEvent.get("date_first").__str__()
 
+        if pmEvent.get("date_last") != None:
+            pmEvent['date_last'] = (pmEvent.get("date_last") + timedelta(seconds=timeoffset)).__str__()
+        else:
+            pmEvent['date_last'] = pmEvent.get("date_last").__str__()
+
+        data['items'].append(pmEvent)
     return data
 
 
@@ -227,132 +266,81 @@ def get_pci(agent_id=None, offset=0, limit=common.database_limit, sort=None, sea
     :param search: Looks for items with the specified string.
     :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
     """
-
-    query = "SELECT {0} FROM pm_event WHERE pci_dss IS NOT NULL"
+    
     fields = {}
-    request = {}
+    request = { "$and": [
+        {
+            'pci_dss': {
+                '$ne': None
+            }
+        }
+    ] }
 
     # Connection
-    db_agent = glob('{0}/{1}-*.db'.format(common.database_path_agents, agent_id))
-    if not db_agent:
+    db_url = common.database_path
+    conn = Connection(db_url)
+    conn.connect(conn.getDbById(str(agent_id).zfill(3)))
+    if (conn.getDb() == None):
         raise OssecAPIException(1600)
-    else:
-        db_agent = db_agent[0]
-
-    conn = Connection(db_agent)
 
     # Search
     if search:
-        query += " AND NOT" if bool(search['negation']) else ' AND'
-        query += " pci_dss LIKE :search"
-        request['search'] = '%{0}%'.format(search['value'])
+        regex = re.compile(".*{0}.*".format(int(search['value']) if search['value'].isdigit() \
+                                                                    else search['value']), re.IGNORECASE)
+        search_con = {
+            "$or": []
+        }
+
+        search_con["$or"].append({
+            'pci_dss': regex
+        })
+            
+        if bool(search['negation']):
+            if search_con["$or"]:
+                request["$and"].append({
+                    "$not": search_con
+                })
+        else:
+            if search_con["$or"]:
+                request["$and"].append(search_con)
 
     # Total items
-    conn.execute(query.format('COUNT(DISTINCT pci_dss)'), request)
-    data = {'totalItems': conn.fetch()[0]}
+    # conn.execute(query.format('COUNT(DISTINCT pci_dss)'), request)
+    # data = {'totalItems': conn.fetch()[0]}
 
     # Sorting
+    sort_con = []
     if sort:
         if sort['fields']:
-            allowed_sort_fields = fields.keys()
+            allowed_sort_fields = set(fields.keys())
             # Check if every element in sort['fields'] is in allowed_sort_fields
             if not set(sort['fields']).issubset(allowed_sort_fields):
                 uncorrect_fields = list(map(lambda x: str(x), set(sort['fields']) - set(allowed_sort_fields)))
                 raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, uncorrect_fields))
-
-            query += ' ORDER BY pci_dss ' + sort['order']
+            
+            for i in sort['fields']:
+                str_order = 1 if sort['order'] == 'asc' else -1
+                sort_con.append((fields[i], str_order))
         else:
-            query += ' ORDER BY pci_dss {0}'.format(sort['order'])
+            sort_con.append(('pci_dss', 1 if sort['order'] == 'asc' else -1))
     else:
-        query += ' ORDER BY pci_dss ASC'
+        sort_con.append(('pci_dss', 1))
 
     if limit:
         if limit > common.maximum_database_limit:
             raise OssecAPIException(1405, str(limit))
-        query += ' LIMIT :offset,:limit'
-        request['offset'] = offset
-        request['limit'] = limit
     elif limit == 0:
         raise OssecAPIException(1406)
 
-
-    conn.execute(query.format('DISTINCT pci_dss'), request)
-
+    if not request["$and"]:
+        request = {}
+    db_data = conn.getDb()['pm_event'].find(request).sort(sort_con).skip(offset).limit(limit).distinct('pci_dss')
+    data = {}
     data['items'] = []
-    for tuple in conn:
-        data['items'].append(tuple[0])
+    for pmEvent in db_data:
+        data['items'].append(pmEvent)
 
     return data
-
-
-def get_cis(agent_id=None, offset=0, limit=common.database_limit, sort=None, search=None):
-    """
-    Get all the CIS requirements used in the rootchecks of the agent.
-
-    :param agent_id: Agent ID.
-    :param offset: First item to return.
-    :param limit: Maximum number of items to return.
-    :param sort: Sorts the items. Format: {"fields":["field1","field2"],"order":"asc|desc"}.
-    :param search: Looks for items with the specified string.
-    :return: Dictionary: {'items': array of items, 'totalItems': Number of items (without applying the limit)}
-    """
-
-    query = "SELECT {0} FROM pm_event WHERE cis IS NOT NULL"
-    fields = {}
-    request = {}
-
-    # Connection
-    db_agent = glob('{0}/{1}-*.db'.format(common.database_path_agents, agent_id))
-    if not db_agent:
-        raise OssecAPIException(1600)
-    else:
-        db_agent = db_agent[0]
-
-    conn = Connection(db_agent)
-
-    # Search
-    if search:
-        query += " AND NOT" if bool(search['negation']) else ' AND'
-        query += " cis LIKE :search"
-        request['search'] = '%{0}%'.format(search['value'])
-
-    # Total items
-    conn.execute(query.format('COUNT(DISTINCT cis)'), request)
-    data = {'totalItems': conn.fetch()[0]}
-
-    # Sorting
-    if sort:
-        if sort['fields']:
-            allowed_sort_fields = fields.keys()
-            # Check if every element in sort['fields'] is in allowed_sort_fields
-            if not set(sort['fields']).issubset(allowed_sort_fields):
-                uncorrect_fields = map(lambda x: str(x), set(sort['fields']) - set(allowed_sort_fields))
-                raise OssecAPIException(1403, 'Allowed sort fields: {0}. Fields: {1}'.format(allowed_sort_fields, uncorrect_fields))
-
-            query += ' ORDER BY cis ' + sort['order']
-        else:
-            query += ' ORDER BY cis {0}'.format(sort['order'])
-    else:
-        query += ' ORDER BY cis ASC'
-
-    if limit:
-        if limit > common.maximum_database_limit:
-            raise OssecAPIException(1405, str(limit))
-        query += ' LIMIT :offset,:limit'
-        request['offset'] = offset
-        request['limit'] = limit
-    elif limit == 0:
-        raise OssecAPIException(1406)
-
-
-    conn.execute(query.format('DISTINCT cis'), request)
-
-    data['items'] = []
-    for tuple in conn:
-        data['items'].append(tuple[0])
-
-    return data
-
 
 def last_scan(agent_id):
     """
@@ -362,25 +350,32 @@ def last_scan(agent_id):
     :return: Dictionary: end, start.
     """
     # Connection
-    db_agent = glob('{0}/{1}-*.db'.format(common.database_path_agents, agent_id))
-    if not db_agent:
+    db_url = common.database_path
+    conn = Connection(db_url)
+    conn.connect(conn.getDbById(str(agent_id).zfill(3)))
+    if (conn.getDb() == None):
         raise OssecAPIException(1600)
-    else:
-        db_agent = db_agent[0]
-
-    conn = Connection(db_agent)
 
     data = {}
-    # end time
-    query = "SELECT max(date_last) FROM pm_event WHERE log = 'Ending rootcheck scan.'"
-    conn.execute(query)
-    for tuple in conn:
-        data['end'] = tuple[0]
 
-    # start time
-    query = "SELECT max(date_last) FROM pm_event WHERE log = 'Starting rootcheck scan.'"
-    conn.execute(query)
-    for tuple in conn:
-        data['start'] = tuple[0]
+    lastRootcheckEndTime = None
+    lastRootcheckEndTimeObj = list((conn.getDb()['pm_event'].find( { "log": 'Ending rootcheck scan.'} ).sort([('date_last', -1)]).limit(1)))[0]
+    if (lastRootcheckEndTimeObj != None):
+        lastRootcheckEndTime = lastRootcheckEndTimeObj.get('date_last')
+
+    if lastRootcheckEndTime != None:
+        data['end'] = (lastRootcheckEndTime + timedelta(seconds=timeoffset)).__str__()
+    else:
+        data['end'] = lastRootcheckEndTime.__str__()
+
+    lastRootcheckStartTime = None
+    lastRootcheckStartTimeObj = list((conn.getDb()['pm_event'].find( { "log": 'Starting rootcheck scan.'} ).sort([('date_last', -1)]).limit(1)))[0]
+    if (lastRootcheckStartTimeObj != None):
+        lastRootcheckStartTime = lastRootcheckStartTimeObj.get('date_last')
+
+    if lastRootcheckStartTime != None:
+        data['start'] = (lastRootcheckStartTime + timedelta(seconds=timeoffset)).__str__()
+    else:
+        data['start'] = lastRootcheckStartTime.__str__()
 
     return data

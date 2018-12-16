@@ -910,7 +910,7 @@ class Agent(object):
                 else:
                     agent['lastAlive'] = agent.get("lastAlive").__str__()
             if 'status' in user_select_fields:
-                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), False if agent.get("version", "") != "" else True)  if agent.get("id") != "000" else "Alive"
+                agent['status'] = Agent.calculate_status(agent.get("lastAlive"), False if agent.get("version", "") != "" else True)  if agent.get("id") != "000" else "Active"
             data['items'].append(agent)
         
         return data

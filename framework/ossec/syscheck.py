@@ -429,7 +429,6 @@ def files(agent_id=None, event=None, filename=None, filetype='file', md5=None, s
             events.append(item)
 
     data = {'totalItems': len(events)}
-    print(data)
     # Sorting
     event_sort_con = []
     file_sort_con = []
@@ -482,10 +481,10 @@ def files(agent_id=None, event=None, filename=None, filetype='file', md5=None, s
     elif limit == 0:
         raise OssecAPIException(1406)
     
-    if summary:
-        select = ["max(date)", "mtime", "fim_event.type", "path"]
-    else:
-        select = ["date", "mtime", "fim_event.type", "path", "size", "perm", "uid", "gid", "md5", "sha1"]
+    # if summary:
+    #     select = ["max(date)", "mtime", "fim_event.type", "path"]
+    # else:
+    #     select = ["date", "mtime", "fim_event.type", "path", "size", "perm", "uid", "gid", "md5", "sha1"]
     
     
 
@@ -496,10 +495,10 @@ def files(agent_id=None, event=None, filename=None, filetype='file', md5=None, s
             data_tuple['scanDate'] = (fEvent.get('date') + timedelta(seconds=timeoffset)).__str__()
         else:
             data_tuple['scanDate'] = fEvent.get('date').__str__()
-        if fEvent.get('mtime') != None:
-            data_tuple['modificationDate'] = (fEvent.get('mtime') + timedelta(seconds=timeoffset)).__str__()  # modificationDate
-        else:
-            data_tuple['modificationDate'] = data_tuple['scanDate']  # scanDate
+        # if fEvent.get('mtime') != None:
+        #     data_tuple['modificationDate'] = (fEvent.get('mtime') + timedelta(seconds=timeoffset)).__str__()  # modificationDate
+        # else:
+        #     data_tuple['modificationDate'] = data_tuple['scanDate']  # scanDate
         if fEvent.get('fim_event.type') != None:
             data_tuple['event'] = fEvent.get('fim_event.type')
         if fEvent.get('path') != None:

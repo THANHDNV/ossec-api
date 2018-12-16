@@ -158,14 +158,14 @@ def print_db(agent_id=None, status='all', pci=None, offset=0, limit=common.datab
         if lastRootcheckEndTime != None:
             request['$and'].append({
                 'date_last': {
-                    '$gt': (lastRootcheckEndTime - timedelta(second=86400))
+                    '$gt': (lastRootcheckEndTime - timedelta(seconds=86400))
                 }
             })
     elif status == 'solved':
         if lastRootcheckEndTime != None:
             request['$and'].append({
                 'date_last': {
-                    '$lte': (lastRootcheckEndTime - timedelta(second=86400))
+                    '$lte': (lastRootcheckEndTime - timedelta(seconds=86400))
                 }
             })
 
